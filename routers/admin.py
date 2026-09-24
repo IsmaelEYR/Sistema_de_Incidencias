@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Optional
+from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Depends, Form, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -8,7 +9,7 @@ from sqlalchemy.orm import Session
 from dependencies import get_db
 from config import settings
 import schemas
-from models import Usuario
+from models import Usuario, caracas_now
 from services import incidencias as incidencias_service
 from services.usuarios import listar_usuarios, crear_usuario
 from exceptions import DuplicateError
@@ -30,12 +31,13 @@ def render_template(template_name: str, context: dict, status_code: int = 200) -
 @router.get("/dashboard", response_class=HTMLResponse)
 def dashboard_supervisor(request: Request, db: Session = Depends(get_db),
                          user: Usuario = Depends(require_supervisor)):
-    incidencias = incidencias_service.listar_incidencias(db)
-    ahora = datetime.utcnow()
+    incidencias = incidencias_service.listar_incidencias_dashboard(db)
+    ahora = caracas_now()
+    zona_caracas = ZoneInfo("America/Caracas")
     for inc in incidencias:
         if inc.fecha_reporte:
-            fecha = inc.fecha_reporte.replace(tzinfo=None) if inc.fecha_reporte.tzinfo else inc.fecha_reporte
-            diff = ahora - fecha
+            fecha_segura = inc.fecha_reporte.replace(tzinfo=zona_caracas) if inc.fecha_reporte.tzinfo is None else inc.fecha_reporte
+            diff = ahora - fecha_segura
             horas = int(diff.total_seconds() // 3600)
             minutos = int((diff.total_seconds() % 3600) // 60)
             inc.tiempo_transcurrido = f"{horas}h {minutos}m"
@@ -54,15 +56,56 @@ def dashboard_supervisor(request: Request, db: Session = Depends(get_db),
     }
     return render_template("dashboard_admin.html", context)
 
+# ─── Historial General de Incidencias ──────────────────────────────
+@router.get("/historial-general", response_class=HTMLResponse)
+def historial_general(request: Request, db: Session = Depends(get_db), user: Usuario = Depends(require_supervisor)):
+    from datetime import timedelta
+    todas_incidencias = incidencias_service.listar_incidencias(db)
+    # Filtramos solo las resueltas
+    incidencias = [inc for inc in todas_incidencias if inc.estado == "Resuelta"]
+    
+    ahora = caracas_now()
+    zona_caracas = ZoneInfo("America/Caracas")
+    
+    for inc in incidencias:
+        if inc.fecha_reporte:
+            fecha_segura = inc.fecha_reporte.replace(tzinfo=zona_caracas) if inc.fecha_reporte.tzinfo is None else inc.fecha_reporte
+            # Para el historial usamos la fecha de resolución (el último registro en el historial) si existe
+            fecha_resolucion = inc.historial[0].fecha if inc.historial else fecha_segura
+            fecha_resolucion_segura = fecha_resolucion.replace(tzinfo=zona_caracas) if fecha_resolucion.tzinfo is None else fecha_resolucion
+            inc.fecha_resolucion_str = fecha_resolucion_segura.strftime('%d/%m/%Y %H:%M')
+            
+            # Calculamos fecha de mantenimiento (+90 días) para inyectarla en Jinja
+            inc.fecha_mantenimiento = fecha_resolucion_segura + timedelta(days=90)
+        else:
+            inc.fecha_resolucion_str = "—"
+            inc.fecha_mantenimiento = None
+
+    context = {
+        "request": request,
+        "incidencias": incidencias,
+        "hospital_name": settings.hospital_name,
+        "modo_supervisor": True
+    }
+    return render_template("historial_admin.html", context)
+
 
 # ─── Gestión de Usuarios ───────────────────────────────────────────
 @router.get("/usuarios", response_class=HTMLResponse)
-def lista_usuarios(request: Request, db: Session = Depends(get_db),
+def lista_usuarios(request: Request, inactivos: Optional[str] = None, error: Optional[str] = None, db: Session = Depends(get_db),
                    user: Usuario = Depends(require_supervisor)):
-    usuarios = listar_usuarios(db)
+    viendo_inactivos = inactivos == "1"
+    
+    if viendo_inactivos:
+        usuarios = db.query(Usuario).filter(Usuario.activo == 0).order_by(Usuario.nombre).all()
+    else:
+        usuarios = db.query(Usuario).filter(Usuario.activo == 1).order_by(Usuario.nombre).all()
+        
     context = {
         "request": request,
         "usuarios": usuarios,
+        "viendo_inactivos": viendo_inactivos,
+        "error": error,
         "hospital_name": settings.hospital_name
     }
     return render_template("admin_usuarios.html", context)
@@ -165,12 +208,21 @@ def editar_usuario_post(
 @router.post("/usuarios/{id}/eliminar")
 def eliminar_usuario_post(
     id: int,
+    password_confirmacion: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     user: Usuario = Depends(require_supervisor)
 ):
-    from services.usuarios import eliminar_usuario
+    from services.usuarios import eliminar_usuario, obtener_usuario
+    from auth.jwt_utils import verificar_password
+    
+    usuario_a_eliminar = obtener_usuario(db, id)
+    
+    if usuario_a_eliminar.rol == "Supervisor":
+        if not password_confirmacion or not verificar_password(password_confirmacion, usuario_a_eliminar.password_hash or ""):
+            return RedirectResponse("/admin/usuarios?error=Contraseña+incorrecta+para+eliminar+supervisor", status_code=303)
+            
     eliminar_usuario(db, id)
-    registrar_accion(db, user.id, f"Eliminó usuario ID {id}")
+    registrar_accion(db, user.id, f"Eliminó usuario ID {id} (Rol: {usuario_a_eliminar.rol})")
     return RedirectResponse("/admin/usuarios", status_code=303)
 
 
@@ -179,10 +231,11 @@ def eliminar_usuario_post(
 def detalle_incidencia_admin(id: int, request: Request, db: Session = Depends(get_db),
                              user: Usuario = Depends(require_supervisor)):
     incidencia = incidencias_service.obtener_incidencia(db, id)
-    ahora = datetime.utcnow()
+    ahora = caracas_now()
+    zona_caracas = ZoneInfo("America/Caracas")
     if incidencia.fecha_reporte:
-        fecha = incidencia.fecha_reporte.replace(tzinfo=None) if incidencia.fecha_reporte.tzinfo else incidencia.fecha_reporte
-        diff = ahora - fecha
+        fecha_segura = incidencia.fecha_reporte.replace(tzinfo=zona_caracas) if incidencia.fecha_reporte.tzinfo is None else incidencia.fecha_reporte
+        diff = ahora - fecha_segura
         horas = int(diff.total_seconds() // 3600)
         minutos = int((diff.total_seconds() % 3600) // 60)
         tiempo_abierta = f"{horas}h {minutos}m"

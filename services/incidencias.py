@@ -30,6 +30,22 @@ def incidencia_a_detalle(incidencia: models.Incidencia) -> schemas.IncidenciaDet
     )
 
 
+def listar_incidencias_dashboard(db: Session) -> list[models.Incidencia]:
+    from models import caracas_now
+    ahora = caracas_now()
+    hoy_inicio = ahora.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    return (
+        db.query(models.Incidencia)
+        .options(joinedload(models.Incidencia.equipo), joinedload(models.Incidencia.tecnico))
+        .filter(
+            (models.Incidencia.estado.in_(["Pendiente", "En Proceso"])) |
+            ((models.Incidencia.estado == "Resuelta") & (models.Incidencia.fecha_reporte >= hoy_inicio))
+        )
+        .order_by(models.Incidencia.fecha_reporte.desc())
+        .all()
+    )
+
 def listar_incidencias(db: Session) -> list[models.Incidencia]:
     return (
         db.query(models.Incidencia)
@@ -37,7 +53,6 @@ def listar_incidencias(db: Session) -> list[models.Incidencia]:
         .order_by(models.Incidencia.fecha_reporte.desc())
         .all()
     )
-
 
 def listar_incidencias_detalle(db: Session) -> list[schemas.IncidenciaDetalleResponse]:
     return [incidencia_a_detalle(i) for i in listar_incidencias(db)]

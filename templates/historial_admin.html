@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Historial de Mantenimientos - {{ hospital_name }}{% endblock %}
+{% block nav_historial %}active{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+    <div class="page-header">
+        <h2>🗄️ Historial de Mantenimientos</h2>
+        <p>Histórico completo de incidencias resueltas y registro de mantenimientos preventivos.</p>
+    </div>
+
+    <!-- Tabla de incidencias resueltas -->
+    <div class="card-hospital mt-4 mb-5 shadow-sm">
+        <div class="card-header-custom">
+            <h3>📋 Tickets Resueltos</h3>
+        </div>
+
+        {% if incidencias %}
+        <div class="table-responsive">
+            <table class="table table-hospital" id="tablaHistorial">
+                <thead>
+                    <tr>
+                        <th>Ticket</th>
+                        <th>Descripción</th>
+                        <th>Equipo</th>
+                        <th>Técnico</th>
+                        <th>Fecha Resolución</th>
+                        <th>Próximo Mantenimiento</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for inc in incidencias %}
+                    <tr>
+                        <td data-label="Ticket">
+                            <span class="ticket-id">#{{ "%04d"|format(inc.id) }}</span>
+                        </td>
+                        <td data-label="Descripción" class="descripcion-cell" title="{{ inc.descripcion }}">
+                            {{ inc.descripcion }}
+                        </td>
+                        <td data-label="Equipo">
+                            <div class="equipo-info">
+                                <span class="equipo-nombre">{{ inc.equipo.nombre if inc.equipo else '—' }}</span>
+                                <span class="equipo-ubicacion">📍 {{ inc.equipo.ubicacion if inc.equipo else '—' }}</span>
+                            </div>
+                        </td>
+                        <td data-label="Técnico" class="tecnico-cell">
+                            {% if inc.tecnico %}
+                                👤 {{ inc.tecnico.nombre }}
+                            {% else %}
+                                <span class="tecnico-sin-asignar">Sin asignar</span>
+                            {% endif %}
+                        </td>
+                        <td data-label="Fecha Resolución" class="fecha-cell">
+                            {{ inc.fecha_resolucion_str }}
+                        </td>
+                        <td data-label="Próximo Mantenimiento">
+                            {% if inc.equipo and inc.equipo.tipo == 'PC' %}
+                                {% if inc.fecha_mantenimiento %}
+                                    <span class="badge" style="background-color: #0284c7; color: white;">
+                                        Preventivo: {{ inc.fecha_mantenimiento.strftime('%d/%m/%Y') }}
+                                    </span>
+                                {% else %}
+                                    —
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">📭</div>
+            <p>No hay mantenimientos ni incidencias resueltas registradas aún.</p>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_head %}
+<!-- DataTables CSS -->
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- jQuery & DataTables JS -->
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+    $(document).ready(function() {
+        // Inicializar DataTables
+        $('#tablaHistorial').DataTable({
+            "language": {
+                "lengthMenu": "Mostrar _MENU_ registros por página",
+                "zeroRecords": "No se encontraron resultados",
+                "info": "Mostrando página _PAGE_ de _PAGES_",
+                "infoEmpty": "No hay registros disponibles",
+                "infoFiltered": "(filtrado de _MAX_ registros totales)",
+                "search": "Buscar:",
+                "paginate": {
+                    "first": "Primero",
+                    "last": "Último",
+                    "next": "Siguiente",
+                    "previous": "Anterior"
+                }
+            },
+            "order": [[ 0, "desc" ]],
+            "pageLength": 15,
+            "lengthMenu": [15, 30, 50, 100]
+        });
+    });
+</script>
+{% endblock %}

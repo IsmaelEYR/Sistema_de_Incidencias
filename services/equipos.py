@@ -113,26 +113,38 @@ def eliminar_equipo(db: Session, equipo_id: int) -> None:
     db.commit()
 
 
-def generar_qr_equipo(db: Session, equipo_id: int) -> StreamingResponse:
-    equipo = obtener_equipo(db, equipo_id)
-    url_reporte = f"{settings.base_url}/reportar/{equipo.codigo_qr}"
+def generar_qr_equipo(db: Session, equipo_id: int):
+    from io import BytesIO
+    from fastapi import HTTPException
+    from fastapi.responses import StreamingResponse
+    try:
+        import qrcode
+    except ImportError:
+        raise HTTPException(status_code=500, detail="Faltan librerías requeridas (qrcode, Pillow) para generar el QR.")
 
-    qr = qrcode.QRCode(
-        version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_M,
-        box_size=10,
-        border=4,
-    )
-    qr.add_data(url_reporte)
-    qr.make(fit=True)
+    try:
+        equipo = obtener_equipo(db, equipo_id)
+        url_reporte = f"{settings.base_url}/reportar/{equipo.codigo_qr}"
 
-    img = qr.make_image(fill_color="#0d6e6e", back_color="white")
-    buffer = BytesIO()
-    img.save(buffer, format="PNG")
-    buffer.seek(0)
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_M,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(url_reporte)
+        qr.make(fit=True)
 
-    return StreamingResponse(
-        buffer,
-        media_type="image/png",
-        headers={"Content-Disposition": f'inline; filename="qr-{equipo.codigo_qr}.png"'},
-    )
+        img = qr.make_image(fill_color="#0d6e6e", back_color="white")
+        
+        buffer = BytesIO()
+        img.save(buffer, format="PNG")
+        buffer.seek(0)
+
+        return StreamingResponse(
+            buffer,
+            media_type="image/png",
+            headers={"Content-Disposition": f'inline; filename="qr-{equipo.codigo_qr}.png"'},
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error interno al generar el código QR: {str(e)}")

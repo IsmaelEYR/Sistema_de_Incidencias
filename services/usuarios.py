@@ -15,8 +15,13 @@ def obtener_usuario_por_nombre(db: Session, nombre: str) -> models.Usuario | Non
     return db.query(models.Usuario).filter(models.Usuario.nombre == nombre).first()
 
 
-def listar_usuarios(db: Session) -> list[models.Usuario]:
-    return db.query(models.Usuario).order_by(models.Usuario.nombre).all()
+def listar_usuarios(db: Session, inactivos: bool = False) -> list[models.Usuario]:
+    query = db.query(models.Usuario)
+    if inactivos:
+        query = query.filter(models.Usuario.activo == 0)
+    else:
+        query = query.filter(models.Usuario.activo == 1)
+    return query.order_by(models.Usuario.nombre).all()
 
 
 def listar_usuarios_activos_por_rol(db: Session, rol: str) -> list[models.Usuario]:

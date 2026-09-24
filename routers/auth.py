@@ -50,6 +50,6 @@ def login_post(
 
 @router.get("/logout")
 def logout():
-    response = RedirectResponse("/login", status_code=status.HTTP_303_SEE_OTHER)
-    response.delete_cookie("access_token")
+    response = RedirectResponse("/dashboard", status_code=status.HTTP_303_SEE_OTHER)
+    response.delete_cookie(key="access_token", path="/", httponly=True)
     return response

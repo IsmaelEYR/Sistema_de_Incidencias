@@ -40,7 +40,7 @@ async def integrity_error_handler(_: Request, exc: IntegrityError):
 async def http_exception_handler(request: Request, exc: HTTPException):
     accept = request.headers.get("accept", "")
     if exc.status_code in (401, 403) and "text/html" in accept:
-        if request.url.path.startswith("/admin") or request.url.path.startswith("/equipos"):
+        if request.url.path.startswith("/admin") or request.url.path.startswith("/equipos") or request.url.path.startswith("/dashboard") or request.url.path.startswith("/panel"):
             return RedirectResponse(url="/login", status_code=303)
     return JSONResponse(
         status_code=exc.status_code,

@@ -1,4 +1,5 @@
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Depends, Form, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -9,6 +10,8 @@ from config import settings
 import schemas
 from services import equipos as equipos_service
 from services import incidencias as incidencias_service
+from auth.dependencies import get_current_user_optional
+from models import Usuario, caracas_now
 
 router = APIRouter(tags=["Dashboard"])
 templates = Jinja2Templates(directory="templates")
@@ -18,14 +21,23 @@ def render_template(template_name: str, context: dict, status_code: int = 200) -
     content = template.render(context)
     return HTMLResponse(content=content, status_code=status_code)
 
+@router.get("/panel")
+def panel_redireccion(user: Usuario = Depends(get_current_user_optional)):
+    if not user:
+        return RedirectResponse("/dashboard", status_code=303)
+    if user.rol in ["Supervisor", "Asistente Administrativo"]:
+        return RedirectResponse("/admin/dashboard", status_code=303)
+    return RedirectResponse("/dashboard", status_code=303)
+
 @router.get("/dashboard", response_class=HTMLResponse)
-def dashboard_publico(request: Request, db: Session = Depends(get_db)):
-    incidencias = incidencias_service.listar_incidencias(db)
-    ahora = datetime.utcnow()
+def dashboard_publico(request: Request, db: Session = Depends(get_db), user: Usuario = Depends(get_current_user_optional)):
+    incidencias = incidencias_service.listar_incidencias_dashboard(db)
+    ahora = caracas_now()
+    zona_caracas = ZoneInfo("America/Caracas")
     for inc in incidencias:
         if inc.fecha_reporte:
-            fecha = inc.fecha_reporte.replace(tzinfo=None) if inc.fecha_reporte.tzinfo else inc.fecha_reporte
-            diff = ahora - fecha
+            fecha_segura = inc.fecha_reporte.replace(tzinfo=zona_caracas) if inc.fecha_reporte.tzinfo is None else inc.fecha_reporte
+            diff = ahora - fecha_segura
             horas = int(diff.total_seconds() // 3600)
             minutos = int((diff.total_seconds() % 3600) // 60)
             inc.tiempo_transcurrido = f"{horas}h {minutos}m"

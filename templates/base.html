@@ -21,13 +21,18 @@
             </div>
         </div>
         <div class="d-none d-md-flex gap-1">
-            <a href="{% if request.cookies.get('access_token') %}/admin/dashboard{% else %}/dashboard{% endif %}" class="nav-link nav-link-custom {% block nav_dashboard %}{% endblock %}">Dashboard</a>
+            <a href="/panel" class="nav-link nav-link-custom {% block nav_dashboard %}{% endblock %}">Panel de Control</a>
             
-            {% if request.cookies.get("access_token") %}
-                <!-- Enlaces solo para supervisor (cuando inicia sesión) -->
+            {% set usuario = request.state.usuario if request.state and 'usuario' in request.state._state else None %}
+            
+            {% if usuario %}
+                <!-- Enlaces solo para administradores/supervisores -->
+                {% if usuario.rol == 'Supervisor' or usuario.rol == 'Asistente Administrativo' %}
                 <a href="/equipos/lista" class="nav-link nav-link-custom {% block nav_equipos %}{% endblock %}">Equipos</a>
                 <a href="/admin/usuarios" class="nav-link nav-link-custom {% block nav_usuarios %}{% endblock %}">Usuarios</a>
                 <a href="/admin/auditoria" class="nav-link nav-link-custom {% block nav_auditoria %}{% endblock %}">Auditoría</a>
+                <a href="/admin/historial-general" class="nav-link nav-link-custom {% block nav_historial %}{% endblock %}">Historial</a>
+                {% endif %}
                 <a href="/logout" class="nav-link nav-link-custom">Cerrar sesión</a>
             {% else %}
                 <!-- Enlaces públicos -->
@@ -45,6 +50,18 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const logoutLinks = document.querySelectorAll('a[href="/logout"]');
+    logoutLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            if (!confirm('¿Estás seguro que deseas cerrar sesión?')) {
+                e.preventDefault();
+            }
+        });
+    });
+});
+</script>
 {% block extra_scripts %}{% endblock %}
 </body>
 </html>

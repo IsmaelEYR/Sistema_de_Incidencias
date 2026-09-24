@@ -191,12 +191,32 @@ def detalles_tecnicos_pc(id: int, request: Request, db: Session = Depends(get_db
     equipo = equipos_service.obtener_equipo(db, id)
     if equipo.tipo.lower() != "pc":
         return RedirectResponse("/equipos/lista?error=El+equipo+no+es+PC", status_code=303)
+
+    from models import Incidencia
+    import datetime
+    
+    ultima_resuelta = db.query(Incidencia).filter(
+        Incidencia.equipo_id == id,
+        Incidencia.estado == "Resuelta"
+    ).order_by(Incidencia.fecha_reporte.desc()).first()
+
+    mantenimiento_info = None
+    if ultima_resuelta and ultima_resuelta.fecha_reporte:
+        fecha = ultima_resuelta.fecha_reporte
+        prox = fecha + datetime.timedelta(days=90)
+        mantenimiento_info = {
+            "fecha": fecha.strftime("%d/%m/%Y"),
+            "tecnico": ultima_resuelta.tecnico.nombre if ultima_resuelta.tecnico else "Desconocido",
+            "proximo": prox.strftime("%d/%m/%Y")
+        }
+
     return templates.TemplateResponse(
         request=request,
         name="detalle_pc.html",
         context={
             "equipo": equipo,
             "detalle": equipo.detalle_pc,
+            "mantenimiento_info": mantenimiento_info,
             "hospital_name": settings.hospital_name,
         },
     )
@@ -293,12 +313,32 @@ def ficha_tecnica_pc(id: int, request: Request, db: Session = Depends(get_db)):
     equipo = equipos_service.obtener_equipo(db, id)
     if equipo.tipo.lower() != "pc":
         return RedirectResponse("/equipos/lista?error=El+equipo+no+es+PC", status_code=303)
+
+    from models import Incidencia
+    import datetime
+    
+    ultima_resuelta = db.query(Incidencia).filter(
+        Incidencia.equipo_id == id,
+        Incidencia.estado == "Resuelta"
+    ).order_by(Incidencia.fecha_reporte.desc()).first()
+
+    mantenimiento_info = None
+    if ultima_resuelta and ultima_resuelta.fecha_reporte:
+        fecha = ultima_resuelta.fecha_reporte
+        prox = fecha + datetime.timedelta(days=90)
+        mantenimiento_info = {
+            "fecha": fecha.strftime("%d/%m/%Y"),
+            "tecnico": ultima_resuelta.tecnico.nombre if ultima_resuelta.tecnico else "Desconocido",
+            "proximo": prox.strftime("%d/%m/%Y")
+        }
+
     return templates.TemplateResponse(
         request=request,
         name="ficha_tecnica.html",
         context={
             "equipo": equipo,
             "detalle": equipo.detalle_pc,
+            "mantenimiento_info": mantenimiento_info,
             "hospital_name": settings.hospital_name,
         },
     )

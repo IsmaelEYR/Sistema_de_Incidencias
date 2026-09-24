@@ -10,13 +10,24 @@
             <h2>👥 Gestión de Usuarios</h2>
             <p>Total de usuarios: {{ usuarios|length }}</p>
         </div>
-        <a href="/admin/usuarios/crear" class="btn btn-teal">+ Nuevo Usuario</a>
+        <div class="d-flex gap-2">
+            {% if viendo_inactivos %}
+            <a href="/admin/usuarios" class="btn btn-outline-secondary">Ver Usuarios Activos</a>
+            {% else %}
+            <a href="/admin/usuarios?inactivos=1" class="btn btn-outline-secondary">Usuarios Archivados/Inactivos</a>
+            {% endif %}
+            <a href="/admin/usuarios/crear" class="btn btn-teal">+ Nuevo Usuario</a>
+        </div>
     </div>
 
     <div class="card-hospital">
         <div class="card-header-custom">
             <h3>📋 Listado de Usuarios</h3>
         </div>
+
+        {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
 
         {% if usuarios %}
         <div class="table-responsive">
@@ -47,10 +58,7 @@
                         </td>
                         <td data-label="Acciones" class="acciones-cell">
                             <a href="/admin/usuarios/{{ usuario.id }}/editar" class="btn btn-sm btn-outline-primary" title="Editar">✏️</a>
-                            <form method="post" action="/admin/usuarios/{{ usuario.id }}/eliminar" style="display:inline;"
-                                  onsubmit="return confirm('¿Eliminar al usuario {{ usuario.nombre }}?')">
-                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar">🗑️</button>
-                            </form>
+                            <button type="button" class="btn btn-sm btn-outline-danger" title="Eliminar" onclick="confirmarEliminacion({{ usuario.id }}, '{{ usuario.nombre }}', '{{ usuario.rol }}')">🗑️</button>
                         </td>
                     </tr>
                     {% endfor %}
@@ -66,4 +74,57 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Modal de confirmación de eliminación -->
+<div class="modal fade" id="modalEliminarUsuario" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="formEliminarUsuario" method="post" action="">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">Confirmar Eliminación</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="textoEliminarGenerico">¿Estás seguro que deseas eliminar al usuario <strong id="nombreUsuarioEliminar"></strong>?</p>
+                    
+                    <div id="seccionPasswordSupervisor" style="display: none;">
+                        <div class="alert alert-warning">
+                            ¿Estás seguro que quieres eliminar a este supervisor? Este supervisor debe entregarte la contraseña para asegurar que está de acuerdo en la eliminación de su usuario.
+                        </div>
+                        <div class="mb-3">
+                            <label for="supervisorPassword" class="form-label">Contraseña del Supervisor</label>
+                            <input type="password" class="form-control" id="supervisorPassword" name="password_confirmacion">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function confirmarEliminacion(id, nombre, rol) {
+    document.getElementById('formEliminarUsuario').action = '/admin/usuarios/' + id + '/eliminar';
+    document.getElementById('nombreUsuarioEliminar').innerText = nombre;
+    
+    if (rol === 'Supervisor') {
+        document.getElementById('seccionPasswordSupervisor').style.display = 'block';
+        document.getElementById('supervisorPassword').required = true;
+        document.getElementById('textoEliminarGenerico').style.display = 'none';
+    } else {
+        document.getElementById('seccionPasswordSupervisor').style.display = 'none';
+        document.getElementById('supervisorPassword').required = false;
+        document.getElementById('textoEliminarGenerico').style.display = 'block';
+    }
+    
+    var myModal = new bootstrap.Modal(document.getElementById('modalEliminarUsuario'));
+    myModal.show();
+}
+</script>
 {% endblock %}

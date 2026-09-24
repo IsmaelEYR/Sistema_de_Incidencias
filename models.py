@@ -5,6 +5,17 @@ from sqlalchemy.sql import func
 from database import Base, engine
 
 
+import datetime
+try:
+    import zoneinfo
+    tz = zoneinfo.ZoneInfo('America/Caracas')
+except ImportError:
+    import pytz
+    tz = pytz.timezone('America/Caracas')
+
+def caracas_now():
+    return datetime.datetime.now(tz)
+
 class Usuario(Base):
     __tablename__ = "usuarios"
     __table_args__ = (UniqueConstraint("nombre", name="uq_usuario_nombre"),)
@@ -42,7 +53,7 @@ class Incidencia(Base):
     id = Column(Integer, primary_key=True, index=True)
     descripcion = Column(String(1000), nullable=False)
     estado = Column(String(30), default="Pendiente", nullable=False)
-    fecha_reporte = Column(DateTime(timezone=True), server_default=func.now())
+    fecha_reporte = Column(DateTime(timezone=True), default=caracas_now)
 
     equipo_id = Column(Integer, ForeignKey("equipos.id"), nullable=False, index=True)
     tecnico_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True, index=True)
@@ -66,7 +77,7 @@ class HistorialIncidencia(Base):
     estado_anterior = Column(String(30), nullable=True)
     estado_nuevo = Column(String(30), nullable=True)
     detalle = Column(Text, nullable=True)
-    fecha = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    fecha = Column(DateTime(timezone=True), default=caracas_now, index=True)
 
     incidencia = relationship("Incidencia", back_populates="historial")
     usuario = relationship("Usuario", back_populates="historial")
@@ -128,7 +139,7 @@ class DetallePC(Base):
     
     # 5. Cierre
     observaciones = Column(Text, nullable=True)
-    fecha_levantamiento = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    fecha_levantamiento = Column(DateTime(timezone=True), default=caracas_now, onupdate=caracas_now)
 
     equipo = relationship("Equipo", back_populates="detalle_pc")
 
@@ -139,7 +150,7 @@ class LogAuditoria(Base):
     id = Column(Integer, primary_key=True, index=True)
     usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True, index=True)
     accion = Column(String(255), nullable=False)
-    fecha = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    fecha = Column(DateTime(timezone=True), default=caracas_now, index=True)
 
     usuario = relationship("Usuario", back_populates="logs_auditoria")
 

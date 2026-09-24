@@ -79,6 +79,31 @@
 
     <form method="post" action="/equipos/{{ equipo.id }}/detalles-tecnicos">
         
+        {% if mantenimiento_info %}
+        <div class="alert alert-info shadow-sm" style="background-color: #e0f2fe; border-left: 5px solid #0284c7; color: #075985;" role="alert">
+            <div class="d-flex align-items-center">
+                <div style="font-size: 2rem; margin-right: 15px;">🔧</div>
+                <div>
+                    <h5 class="alert-heading mb-1" style="font-weight: 600;">Historial de Mantenimiento</h5>
+                    <p class="mb-0" style="font-size: 0.95rem;">
+                        <strong>Último mantenimiento:</strong> {{ mantenimiento_info.fecha }} por {{ mantenimiento_info.tecnico }} <br>
+                        <strong>Próximo estimado:</strong> {{ mantenimiento_info.proximo }}
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="alert alert-warning shadow-sm" style="border-left: 5px solid #f59e0b;" role="alert">
+            <div class="d-flex align-items-center">
+                <div style="font-size: 2rem; margin-right: 15px;">⚠️</div>
+                <div>
+                    <h5 class="alert-heading mb-1" style="font-weight: 600;">Sin Historial de Mantenimiento</h5>
+                    <p class="mb-0" style="font-size: 0.95rem;">No hay registros de incidencias resueltas para calcular el ciclo de mantenimiento.</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- SECCIÓN 1: Información General -->
         <div class="form-section-card">
             <div class="form-section-header">

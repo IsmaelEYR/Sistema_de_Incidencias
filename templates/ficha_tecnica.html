@@ -249,6 +249,18 @@
             </tr>
         </table>
 
+        {% if mantenimiento_info %}
+        <div class="section-title">HISTORIAL DE MANTENIMIENTO PREVENTIVO</div>
+        <table class="data-table">
+            <tr>
+                <td class="label-cell">Último Mantenimiento:</td>
+                <td class="value-cell">{{ mantenimiento_info.fecha }} ({{ mantenimiento_info.tecnico }})</td>
+                <td class="label-cell">Próximo Mantenimiento:</td>
+                <td class="value-cell">{{ mantenimiento_info.proximo }}</td>
+            </tr>
+        </table>
+        {% endif %}
+
         <div class="section-title">5. OBSERVACIONES</div>
         <div class="observaciones-box">
             {{ detalle.observaciones if detalle and detalle.observaciones else 'Ninguna observación adicional.' }}

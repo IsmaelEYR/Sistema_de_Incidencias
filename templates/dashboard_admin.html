@@ -1,18 +1,23 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard Admin - {{ hospital_name }}{% endblock %}
-{% block nav_dashboard %}active{% endblock %}
+{% block title %}Panel de Control Admin - {{ hospital_name }}{% endblock %}
+{% block nav_dashboard %}{% if not es_historial %}active{% endif %}{% endblock %}
+{% block nav_historial %}{% if es_historial %}active{% endif %}{% endblock %}
 
 {% block content %}
 <div class="page-container">
 
     <div class="page-header d-flex justify-content-between align-items-start">
         <div>
-            <h2>Panel de Control - Supervisor</h2>
-            <p>Monitoreo y gestión de incidencias técnicas</p>
+            {% if es_historial %}
+                <h2>🗄️ Historial General de Incidencias</h2>
+                <p>Histórico completo de todos los registros del sistema</p>
+            {% else %}
+                <h2>Panel de Control - Supervisor</h2>
+                <p>Monitoreo y gestión de incidencias técnicas</p>
+            {% endif %}
         </div>
         <div class="d-flex gap-2">
-            <a href="/equipos/lista" class="btn btn-outline-teal">📋 Ver Equipos</a>
             <a href="/equipos/crear" class="btn btn-teal">+ Nuevo Equipo</a>
         </div>
     </div>
@@ -50,7 +55,7 @@
     </div>
 
     <!-- Tabla de incidencias con acciones -->
-    <div class="card-hospital">
+    <div class="card-hospital mt-5 mb-5 shadow-sm">
         <div class="card-header-custom">
             <h3>📋 Incidencias Registradas</h3>
         </div>
@@ -177,7 +182,18 @@
         // Inicializar DataTables
         $('.table-hospital').DataTable({
             "language": {
-                "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json"
+                "lengthMenu": "Mostrar _MENU_ registros por página",
+                "zeroRecords": "No se encontraron resultados",
+                "info": "Mostrando página _PAGE_ de _PAGES_",
+                "infoEmpty": "No hay registros disponibles",
+                "infoFiltered": "(filtrado de _MAX_ registros totales)",
+                "search": "Buscar:",
+                "paginate": {
+                    "first": "Primero",
+                    "last": "Último",
+                    "next": "Siguiente",
+                    "previous": "Anterior"
+                }
             },
             "order": [[ 0, "desc" ]],
             "pageLength": 10,

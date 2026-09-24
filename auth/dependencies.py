@@ -18,6 +18,22 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> Usuario
     user = db.query(Usuario).filter(Usuario.id == int(user_id)).first()
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario no encontrado")
+    request.state.usuario = user
+    return user
+
+def get_current_user_optional(request: Request, db: Session = Depends(get_db)):
+    token = request.cookies.get("access_token")
+    if not token:
+        return None
+    payload = decodificar_token(token)
+    if payload is None:
+        return None
+    user_id = payload.get("sub")
+    if user_id is None:
+        return None
+    user = db.query(Usuario).filter(Usuario.id == int(user_id)).first()
+    if user:
+        request.state.usuario = user
     return user
 
 def require_role(role: str):
