@@ -1,0 +1,72 @@
+from datetime import datetime
+from fastapi import APIRouter, Depends, Form, Request, status
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
+from sqlalchemy.orm import Session
+
+from dependencies import get_db
+from config import settings
+import schemas
+from services import equipos as equipos_service
+from services import incidencias as incidencias_service
+
+router = APIRouter(tags=["Dashboard"])
+templates = Jinja2Templates(directory="templates")
+
+def render_template(template_name: str, context: dict, status_code: int = 200) -> HTMLResponse:
+    template = templates.get_template(template_name)
+    content = template.render(context)
+    return HTMLResponse(content=content, status_code=status_code)
+
+@router.get("/dashboard", response_class=HTMLResponse)
+def dashboard_publico(request: Request, db: Session = Depends(get_db)):
+    incidencias = incidencias_service.listar_incidencias(db)
+    ahora = datetime.utcnow()
+    for inc in incidencias:
+        if inc.fecha_reporte:
+            fecha = inc.fecha_reporte.replace(tzinfo=None) if inc.fecha_reporte.tzinfo else inc.fecha_reporte
+            diff = ahora - fecha
+            horas = int(diff.total_seconds() // 3600)
+            minutos = int((diff.total_seconds() % 3600) // 60)
+            inc.tiempo_transcurrido = f"{horas}h {minutos}m"
+        else:
+            inc.tiempo_transcurrido = "—"
+    stats = incidencias_service.obtener_estadisticas(db)
+
+    context = {
+        "request": request,
+        "incidencias": incidencias,
+        "stats": stats,
+        "hospital_name": settings.hospital_name
+    }
+    return render_template("dashboard_publico.html", context)
+
+@router.get("/reportar/{codigo_qr}", response_class=HTMLResponse)
+def formulario_reporte(codigo_qr: str, request: Request, db: Session = Depends(get_db)):
+    equipo = equipos_service.obtener_equipo_por_codigo(db, codigo_qr)
+    context = {
+        "request": request,
+        "equipo": equipo,
+        "hospital_name": settings.hospital_name
+    }
+    return render_template("reportar.html", context)
+
+@router.post("/reportar/{codigo_qr}")
+def enviar_reporte(
+    codigo_qr: str,
+    descripcion: str = Form(..., min_length=5, max_length=1000),
+    db: Session = Depends(get_db)
+):
+    from exceptions import DuplicateError
+    datos = schemas.IncidenciaReporteQR(descripcion=descripcion)
+    try:
+        incidencias_service.crear_incidencia_por_qr(db, codigo_qr, datos)
+        return RedirectResponse(
+            url=f"/reportar/{codigo_qr}?exito=1",
+            status_code=status.HTTP_303_SEE_OTHER
+        )
+    except DuplicateError:
+        return RedirectResponse(
+            url=f"/reportar/{codigo_qr}?error=duplicado",
+            status_code=status.HTTP_303_SEE_OTHER
+        )

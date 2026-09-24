@@ -1,0 +1,329 @@
+{% extends "base.html" %}
+
+{% block title %}Detalles Técnicos - {{ equipo.nombre }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    .form-section-card {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        border: 1px solid #e2e8f0;
+        margin-bottom: 25px;
+        overflow: hidden;
+    }
+    .form-section-header {
+        background-color: #f8fafc;
+        border-bottom: 3px solid #0077b6;
+        padding: 15px 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .form-section-header h4 {
+        margin: 0;
+        color: #1e293b;
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+    .form-section-icon {
+        background: #0077b6;
+        color: white;
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+    }
+    .form-section-body {
+        padding: 20px;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #0077b6;
+        box-shadow: 0 0 0 0.25rem rgba(0, 119, 182, 0.25);
+    }
+    .form-label {
+        font-weight: 500;
+        color: #475569;
+        font-size: 0.9rem;
+    }
+    .checkbox-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>💻 Completar Ficha Técnica Avanzada</h2>
+            <p class="text-muted mb-0">Equipo: <strong>{{ equipo.nombre }}</strong> (ID: {{ equipo.id }})</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="/equipos/lista" class="btn btn-outline-secondary">Volver</a>
+            <a href="/equipos/{{ equipo.id }}/ficha-tecnica" class="btn btn-teal" target="_blank">🖨️ Imprimir Ficha</a>
+        </div>
+    </div>
+
+    {% if request.query_params.get('mensaje') %}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        ✅ {{ request.query_params.get('mensaje') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+
+    <form method="post" action="/equipos/{{ equipo.id }}/detalles-tecnicos">
+        
+        <!-- SECCIÓN 1: Información General -->
+        <div class="form-section-card">
+            <div class="form-section-header">
+                <div class="form-section-icon">📋</div>
+                <h4>Información General</h4>
+            </div>
+            <div class="form-section-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Nomenclatura (Nombre en red)</label>
+                        <input type="text" name="nombre_red" class="form-control" value="{{ detalle.nombre_red if detalle else '' }}" placeholder="Ej. PC-ADMIN-01">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">N° de Bien Nacional (B/N)</label>
+                        <input type="text" name="bien_nacional" class="form-control" value="{{ detalle.bien_nacional if detalle else '' }}" placeholder="Ej. BN-2023-4567">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Marca y Modelo del CPU/Laptop</label>
+                        <input type="text" name="marca_modelo_cpu" class="form-control" value="{{ detalle.marca_modelo_cpu if detalle else '' }}" placeholder="Ej. Dell OptiPlex 7090">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Usuario Asignado</label>
+                        <input type="text" name="usuario_asignado" class="form-control" value="{{ detalle.usuario_asignado if detalle else '' }}" placeholder="Nombre del responsable">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN 2: Red y Software -->
+        <div class="form-section-card">
+            <div class="form-section-header">
+                <div class="form-section-icon">🌐</div>
+                <h4>Red y Software</h4>
+            </div>
+            <div class="form-section-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Dirección IP</label>
+                        <input type="text" name="ip" class="form-control" value="{{ detalle.ip if detalle else '' }}" placeholder="192.168.1.X">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label d-block">Tipo de IP</label>
+                        <div class="form-check form-check-inline mt-1">
+                            <input class="form-check-input" type="radio" name="tipo_ip" value="Estática" id="ipEstatica" {% if detalle and detalle.tipo_ip == 'Estática' %}checked{% endif %}>
+                            <label class="form-check-label" for="ipEstatica">Estática</label>
+                        </div>
+                        <div class="form-check form-check-inline mt-1">
+                            <input class="form-check-input" type="radio" name="tipo_ip" value="Dinámica (DHCP)" id="ipDinamica" {% if detalle and detalle.tipo_ip == 'Dinámica (DHCP)' %}checked{% endif %}>
+                            <label class="form-check-label" for="ipDinamica">DHCP</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Dirección MAC</label>
+                        <input type="text" name="mac" class="form-control" value="{{ detalle.mac if detalle else '' }}" placeholder="00:1B:44:11:3A:B7">
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label">Sistema Operativo</label>
+                        <select name="sistema_operativo" class="form-select">
+                            <option value="">Seleccione...</option>
+                            <option value="Windows 11" {% if detalle and detalle.sistema_operativo == 'Windows 11' %}selected{% endif %}>Windows 11</option>
+                            <option value="Windows 10" {% if detalle and detalle.sistema_operativo == 'Windows 10' %}selected{% endif %}>Windows 10</option>
+                            <option value="Linux" {% if detalle and detalle.sistema_operativo == 'Linux' %}selected{% endif %}>Linux</option>
+                            <option value="macOS" {% if detalle and detalle.sistema_operativo == 'macOS' %}selected{% endif %}>macOS</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Versión / Build OS</label>
+                        <input type="text" name="version_so" class="form-control" value="{{ detalle.version_so if detalle else '' }}" placeholder="Ej. 22H2 Pro">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Dominio / Grupo</label>
+                        <input type="text" name="dominio" class="form-control" value="{{ detalle.dominio if detalle else '' }}" placeholder="Ej. WORKGROUP o HOSPITAL.LOCAL">
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Antivirus</label>
+                        <select name="antivirus" class="form-select">
+                            <option value="">Seleccione...</option>
+                            <option value="Institucional (Endpoint)" {% if detalle and detalle.antivirus == 'Institucional (Endpoint)' %}selected{% endif %}>Institucional (Endpoint)</option>
+                            <option value="Windows Defender" {% if detalle and detalle.antivirus == 'Windows Defender' %}selected{% endif %}>Windows Defender</option>
+                            <option value="Comercial" {% if detalle and detalle.antivirus == 'Comercial' %}selected{% endif %}>Otro Comercial</option>
+                            <option value="Ninguno" {% if detalle and detalle.antivirus == 'Ninguno' %}selected{% endif %}>Ninguno</option>
+                        </select>
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label">Software Adicional (Clave)</label>
+                        <textarea name="software_adicional" class="form-control" rows="2" placeholder="Office, Sistemas de Historias Médicas, AutoCAD, etc.">{{ detalle.software_adicional if detalle else '' }}</textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN 3: Hardware Interno -->
+        <div class="form-section-card">
+            <div class="form-section-header">
+                <div class="form-section-icon">⚙️</div>
+                <h4>Hardware Interno</h4>
+            </div>
+            <div class="form-section-body">
+                <div class="row g-3">
+                    <div class="col-md-12">
+                        <label class="form-label">Procesador (CPU)</label>
+                        <input type="text" name="procesador" class="form-control" value="{{ detalle.procesador if detalle else '' }}" placeholder="Ej. Intel Core i5-10400 2.9GHz">
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label">Memoria RAM (GB)</label>
+                        <input type="number" name="ram_gb" class="form-control" value="{{ detalle.ram_gb if detalle else '' }}" placeholder="Ej. 8">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Tipo de RAM</label>
+                        <select name="ram_tipo" class="form-select">
+                            <option value="">Seleccione...</option>
+                            <option value="DDR3" {% if detalle and detalle.ram_tipo == 'DDR3' %}selected{% endif %}>DDR3</option>
+                            <option value="DDR4" {% if detalle and detalle.ram_tipo == 'DDR4' %}selected{% endif %}>DDR4</option>
+                            <option value="DDR5" {% if detalle and detalle.ram_tipo == 'DDR5' %}selected{% endif %}>DDR5</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Slots RAM Ocupados</label>
+                        <input type="text" name="ram_slots" class="form-control" value="{{ detalle.ram_slots if detalle else '' }}" placeholder="Ej. 1 de 2">
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Tipo Almacenamiento</label>
+                        <select name="almacenamiento_tipo" class="form-select">
+                            <option value="">Seleccione...</option>
+                            <option value="HDD SATA" {% if detalle and detalle.almacenamiento_tipo == 'HDD SATA' %}selected{% endif %}>HDD SATA</option>
+                            <option value="SSD SATA" {% if detalle and detalle.almacenamiento_tipo == 'SSD SATA' %}selected{% endif %}>SSD SATA</option>
+                            <option value="SSD NVMe" {% if detalle and detalle.almacenamiento_tipo == 'SSD NVMe' %}selected{% endif %}>SSD NVMe (M.2)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label">Capacidad de Almacenamiento</label>
+                        <input type="text" name="almacenamiento_capacidad" class="form-control" value="{{ detalle.almacenamiento_capacidad if detalle else '' }}" placeholder="Ej. 512 GB o 1 TB">
+                    </div>
+
+                    <div class="col-md-12 mt-4">
+                        <label class="form-label mb-2">Puertos de Video (Activos/Soportados)</label>
+                        <div class="checkbox-grid">
+                            {% set puertos = detalle.puertos_video.split(', ') if detalle and detalle.puertos_video else [] %}
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="puerto_hdmi" id="hdmi" {% if 'HDMI' in puertos %}checked{% endif %}>
+                                <label class="form-check-label" for="hdmi">HDMI</label>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="puerto_displayport" id="dp" {% if 'DISPLAYPORT' in puertos %}checked{% endif %}>
+                                <label class="form-check-label" for="dp">DisplayPort</label>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="puerto_usb_c" id="usbc" {% if 'USB-C' in puertos %}checked{% endif %}>
+                                <label class="form-check-label" for="usbc">USB-C</label>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="puerto_vga" id="vga" {% if 'VGA' in puertos %}checked{% endif %}>
+                                <label class="form-check-label" for="vga">VGA</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN 4: Periféricos y Energía -->
+        <div class="form-section-card">
+            <div class="form-section-header">
+                <div class="form-section-icon">🔌</div>
+                <h4>Periféricos y Energía</h4>
+            </div>
+            <div class="form-section-body">
+                
+                <h6 class="text-primary mt-2">Monitor</h6>
+                <div class="row g-2 mb-3">
+                    <div class="col-md-3"><input type="text" name="monitor_marca" class="form-control form-control-sm" placeholder="Marca" value="{{ detalle.monitor_marca if detalle else '' }}"></div>
+                    <div class="col-md-3"><input type="text" name="monitor_modelo" class="form-control form-control-sm" placeholder="Modelo" value="{{ detalle.monitor_modelo if detalle else '' }}"></div>
+                    <div class="col-md-3"><input type="text" name="monitor_serial" class="form-control form-control-sm" placeholder="Serial" value="{{ detalle.monitor_serial if detalle else '' }}"></div>
+                    <div class="col-md-3"><input type="text" name="monitor_bn" class="form-control form-control-sm" placeholder="Bien Nacional" value="{{ detalle.monitor_bn if detalle else '' }}"></div>
+                </div>
+
+                <h6 class="text-primary mt-3">Teclado</h6>
+                <div class="row g-2 mb-3">
+                    <div class="col-md-4"><input type="text" name="teclado_marca" class="form-control form-control-sm" placeholder="Marca" value="{{ detalle.teclado_marca if detalle else '' }}"></div>
+                    <div class="col-md-4"><input type="text" name="teclado_serial" class="form-control form-control-sm" placeholder="Serial" value="{{ detalle.teclado_serial if detalle else '' }}"></div>
+                    <div class="col-md-4"><input type="text" name="teclado_bn" class="form-control form-control-sm" placeholder="Bien Nacional" value="{{ detalle.teclado_bn if detalle else '' }}"></div>
+                </div>
+
+                <h6 class="text-primary mt-3">Mouse</h6>
+                <div class="row g-2 mb-3">
+                    <div class="col-md-4"><input type="text" name="mouse_marca" class="form-control form-control-sm" placeholder="Marca" value="{{ detalle.mouse_marca if detalle else '' }}"></div>
+                    <div class="col-md-4"><input type="text" name="mouse_serial" class="form-control form-control-sm" placeholder="Serial" value="{{ detalle.mouse_serial if detalle else '' }}"></div>
+                    <div class="col-md-4"><input type="text" name="mouse_bn" class="form-control form-control-sm" placeholder="Bien Nacional" value="{{ detalle.mouse_bn if detalle else '' }}"></div>
+                </div>
+
+                <hr>
+
+                <h6 class="text-primary mt-3">Protección Eléctrica</h6>
+                <div class="row g-2 mb-3">
+                    <div class="col-md-4">
+                        <select name="proteccion_electrica_tipo" class="form-select form-select-sm">
+                            <option value="">Seleccione Tipo...</option>
+                            <option value="UPS" {% if detalle and detalle.proteccion_electrica_tipo == 'UPS' %}selected{% endif %}>UPS</option>
+                            <option value="Regulador" {% if detalle and detalle.proteccion_electrica_tipo == 'Regulador' %}selected{% endif %}>Regulador de Voltaje</option>
+                            <option value="Supresor" {% if detalle and detalle.proteccion_electrica_tipo == 'Supresor' %}selected{% endif %}>Supresor de picos / Regleta</option>
+                            <option value="Directo" {% if detalle and detalle.proteccion_electrica_tipo == 'Directo' %}selected{% endif %}>Directo a pared (Riesgo)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4"><input type="text" name="proteccion_electrica_marca" class="form-control form-control-sm" placeholder="Marca / Modelo" value="{{ detalle.proteccion_electrica_marca if detalle else '' }}"></div>
+                    <div class="col-md-4"><input type="text" name="proteccion_electrica_bn" class="form-control form-control-sm" placeholder="Bien Nacional" value="{{ detalle.proteccion_electrica_bn if detalle else '' }}"></div>
+                </div>
+
+                <hr>
+
+                <h6 class="text-primary mt-3">Impresora Local Adjunta (Opcional)</h6>
+                <div class="row g-2">
+                    <div class="col-md-3"><input type="text" name="impresora_marca" class="form-control form-control-sm" placeholder="Marca" value="{{ detalle.impresora_marca if detalle else '' }}"></div>
+                    <div class="col-md-3"><input type="text" name="impresora_modelo" class="form-control form-control-sm" placeholder="Modelo" value="{{ detalle.impresora_modelo if detalle else '' }}"></div>
+                    <div class="col-md-3"><input type="text" name="impresora_ip" class="form-control form-control-sm" placeholder="IP si aplica" value="{{ detalle.impresora_ip if detalle else '' }}"></div>
+                    <div class="col-md-3"><input type="text" name="impresora_bn" class="form-control form-control-sm" placeholder="Bien Nacional" value="{{ detalle.impresora_bn if detalle else '' }}"></div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- SECCIÓN 5: Cierre -->
+        <div class="form-section-card">
+            <div class="form-section-header">
+                <div class="form-section-icon">📝</div>
+                <h4>Cierre y Observaciones</h4>
+            </div>
+            <div class="form-section-body">
+                <label class="form-label">Observaciones Adicionales del Técnico</label>
+                <textarea name="observaciones" class="form-control" rows="3" placeholder="Estado general, fallas recurrentes o anotaciones relevantes">{{ detalle.observaciones if detalle else '' }}</textarea>
+                
+                {% if detalle and detalle.fecha_levantamiento %}
+                <div class="mt-3 text-end text-muted small">
+                    Última actualización: {{ detalle.fecha_levantamiento.strftime('%d/%m/%Y %H:%M') }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="d-grid mt-4 mb-5">
+            <button type="submit" class="btn btn-primary btn-lg" style="background-color: #0077b6; border: none;">💾 Guardar Ficha Técnica</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

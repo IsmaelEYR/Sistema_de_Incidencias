@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Equipo{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card-hospital">
+                <div class="card-header-custom">
+                    <h3>✏️ Editar Equipo #{{ equipo.id }}</h3>
+                </div>
+                <div class="card-body p-4">
+                    {% if error %}
+                    <div class="alert alert-danger">{{ error }}</div>
+                    {% endif %}
+
+                    <form method="post" id="editar-form">
+                        <div class="mb-3">
+                            <label class="form-label-custom">Tipo de equipo *</label>
+                            <select name="tipo" class="form-control-custom" required>
+                                <option value="PC" {% if equipo.tipo == 'PC' %}selected{% endif %}>PC (CPU + monitor + teclado)</option>
+                                <option value="Impresora" {% if equipo.tipo == 'Impresora' %}selected{% endif %}>Impresora</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label-custom">Ubicación *</label>
+                            <select name="ubicacion" id="ubicacion" class="form-control-custom" required>
+                                {% for u in ubicaciones %}
+                                    <option value="{{ u }}" {% if equipo.ubicacion.lower() == u.lower() %}selected{% endif %}>{{ u }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3" id="div-ubicacion-otro" style="display:none;">
+                            <label class="form-label-custom">Especifique ubicación</label>
+                            <input type="text" name="ubicacion_otro" class="form-control-custom" maxlength="150"
+                                   value="{{ equipo.ubicacion if equipo.ubicacion not in ubicaciones else '' }}">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label-custom">Piso</label>
+                            <input type="text" name="piso" class="form-control-custom" maxlength="10"
+                                   value="{{ equipo.piso or '' }}">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label-custom">Nombre</label>
+                            <input type="text" name="nombre" class="form-control-custom" maxlength="150"
+                                   value="{{ equipo.nombre or '' }}">
+                            <div class="form-text" style="color: var(--text-muted); font-size:0.8rem;">
+                                Si lo deja vacío se generará automáticamente.
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-teal w-100">Guardar Cambios</button>
+                        <a href="/equipos/lista" class="btn btn-outline-secondary w-100 mt-2">Cancelar</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const ubicacionSelect = document.getElementById('ubicacion');
+    const divOtro = document.getElementById('div-ubicacion-otro');
+    function toggleOtro() {
+        divOtro.style.display = ubicacionSelect.value === 'Otros' ? 'block' : 'none';
+    }
+    ubicacionSelect.addEventListener('change', toggleOtro);
+    toggleOtro(); // ajuste inicial
+</script>
+{% endblock %}

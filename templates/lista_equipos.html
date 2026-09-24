@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Equipos Registrados{% endblock %}
+{% block nav_equipos %}active{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header d-flex justify-content-between align-items-start">
+        <div>
+            <h2>🖥️ Equipos del Hospital</h2>
+            <p>Total: {{ equipos|length }}</p>
+        </div>
+        <a href="/equipos/crear" class="btn btn-teal">+ Nuevo Equipo</a>
+    </div>
+
+    <div class="card-hospital">
+        <div class="card-header-custom">
+            <h3>📋 Listado</h3>
+        </div>
+
+        {% if equipos %}
+        <div class="table-responsive">
+            <table class="table table-hospital">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Tipo</th>
+                        <th>Ubicación</th>
+                        <th>Piso</th>
+                        <th>Código QR</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for equipo in equipos %}
+                    <tr>
+                        <td data-label="ID">{{ equipo.id }}</td>
+                        <td data-label="Nombre">{{ equipo.nombre }}</td>
+                        <td data-label="Tipo">{{ equipo.tipo }}</td>
+                        <td data-label="Ubicación">📍 {{ equipo.ubicacion }}</td>
+                        <td data-label="Piso">{{ equipo.piso or '—' }}</td>
+                        <td data-label="Código QR"><code>{{ equipo.codigo_qr }}</code></td>
+                        <td data-label="Acciones" class="acciones-cell">
+                            <a href="/equipos/{{ equipo.id }}/qr" class="btn btn-sm btn-outline-teal" download title="Descargar QR">
+                                📥
+                            </a>
+                            {% if equipo.tipo|lower == 'pc' %}
+                            <a href="/equipos/{{ equipo.id }}/detalles-tecnicos" class="btn btn-sm btn-outline-secondary" title="Detalles PC">
+                                💻
+                            </a>
+                            {% endif %}
+                            <a href="/equipos/{{ equipo.id }}/editar" class="btn btn-sm btn-outline-primary" title="Editar">
+                                ✏️
+                            </a>
+                            <form method="post" action="/equipos/{{ equipo.id }}/eliminar" style="display:inline;"
+                                  onsubmit="return confirm('¿Eliminar el equipo {{ equipo.nombre }}? Esta acción no se puede deshacer.')">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar">🗑️</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">📭</div>
+            <p>No hay equipos registrados.</p>
+            <a href="/equipos/crear" class="btn btn-teal mt-2">Registrar primer equipo</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

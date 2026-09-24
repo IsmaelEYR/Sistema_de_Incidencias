@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Gestión de Usuarios - {{ hospital_name }}{% endblock %}
+{% block nav_usuarios %}active{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header d-flex justify-content-between align-items-start">
+        <div>
+            <h2>👥 Gestión de Usuarios</h2>
+            <p>Total de usuarios: {{ usuarios|length }}</p>
+        </div>
+        <a href="/admin/usuarios/crear" class="btn btn-teal">+ Nuevo Usuario</a>
+    </div>
+
+    <div class="card-hospital">
+        <div class="card-header-custom">
+            <h3>📋 Listado de Usuarios</h3>
+        </div>
+
+        {% if usuarios %}
+        <div class="table-responsive">
+            <table class="table table-hospital">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Email</th>
+                        <th>Rol</th>
+                        <th>Activo</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for usuario in usuarios %}
+                    <tr>
+                        <td data-label="ID">{{ usuario.id }}</td>
+                        <td data-label="Nombre">{{ usuario.nombre }}</td>
+                        <td data-label="Email">{{ usuario.email or '—' }}</td>
+                        <td data-label="Rol">{{ usuario.rol }}</td>
+                        <td data-label="Activo">
+                            {% if usuario.activo %}
+                                <span class="badge-estado badge-resuelta">Activo</span>
+                            {% else %}
+                                <span class="badge-estado badge-cancelada">Inactivo</span>
+                            {% endif %}
+                        </td>
+                        <td data-label="Acciones" class="acciones-cell">
+                            <a href="/admin/usuarios/{{ usuario.id }}/editar" class="btn btn-sm btn-outline-primary" title="Editar">✏️</a>
+                            <form method="post" action="/admin/usuarios/{{ usuario.id }}/eliminar" style="display:inline;"
+                                  onsubmit="return confirm('¿Eliminar al usuario {{ usuario.nombre }}?')">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar">🗑️</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">👤</div>
+            <p>No hay usuarios registrados.</p>
+            <a href="/admin/usuarios/crear" class="btn btn-teal mt-2">Crear primer usuario</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

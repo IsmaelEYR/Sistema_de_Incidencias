@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Reportar Falla - {{ equipo.nombre }}{% endblock %}
+
+{% block navbar %}
+<nav class="navbar-hospital">
+    <div class="container text-center">
+        <div class="brand-text">
+            <h1>{{ hospital_name }}</h1>
+            <p>Reporte de fallas</p>
+        </div>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="report-card">
+        <div class="report-header text-center">
+            <div class="qr-icon">📱</div>
+            <h2>Reporte de Falla Técnica</h2>
+            <p>Complete el formulario para notificar un problema con este equipo</p>
+            <div class="equipo-badge">{{ equipo.codigo_qr }}</div>
+        </div>
+
+        <div class="report-body">
+            <!-- Datos del equipo -->
+            <div class="card mb-4 border-0 bg-light">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-pc-display"></i> {{ equipo.nombre }}</h5>
+                    <ul class="list-unstyled mb-0">
+                        <li><strong>Ubicación:</strong> 📍 {{ equipo.ubicacion }}</li>
+                        <li><strong>Tipo:</strong> {{ equipo.tipo }}</li>
+                        {% if equipo.piso %}
+                        <li><strong>Piso:</strong> {{ equipo.piso }}</li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Mensaje de éxito -->
+            {% if request.query_params.get('exito') == '1' %}
+            <div class="alert alert-success-custom">
+                ✅ Reporte enviado correctamente. El equipo técnico ha sido notificado.
+            </div>
+            {% elif request.query_params.get('error') == 'duplicado' %}
+            <div class="alert alert-danger" style="background-color:#fee2e2; border-color:#fca5a5; color:#991b1b; padding:15px; border-radius:8px; margin-bottom:20px;">
+                ⚠️ <strong>Aviso:</strong> Este equipo ya tiene un reporte de falla activo siendo atendido por soporte técnico.
+            </div>
+            {% else %}
+            <!-- Formulario de reporte -->
+            <form method="post">
+                <div class="mb-3">
+                    <label for="descripcion" class="form-label-custom">Describa la falla *</label>
+                    <textarea name="descripcion" id="descripcion" class="form-control-custom" rows="5"
+                              placeholder="Describa detalladamente el problema que presenta el equipo..."
+                              minlength="5" maxlength="1000" required></textarea>
+                    <div class="form-text mt-1" style="font-size:0.8rem; color: var(--text-muted);">
+                        Mínimo 5 caracteres, máximo 1000.
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary-custom">Enviar Reporte</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Nuevo Equipo{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card-hospital">
+                <div class="card-header-custom">
+                    <h3>➕ Registrar Nuevo Equipo</h3>
+                </div>
+                <div class="card-body p-4">
+                    {% if error %}
+                    <div class="alert alert-danger">{{ error }}</div>
+                    {% endif %}
+
+                    <form method="post" id="crear-form">
+                        <div class="mb-3">
+                            <label class="form-label-custom">Tipo de equipo *</label>
+                            <select name="tipo" class="form-control-custom" required>
+                                <option value="">Seleccione...</option>
+                                <option value="PC">PC (CPU + monitor + teclado)</option>
+                                <option value="Impresora">Impresora</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label-custom">Ubicación *</label>
+                            <select name="ubicacion" id="ubicacion" class="form-control-custom" required>
+                                <option value="">Seleccione...</option>
+                                {% for u in ubicaciones %}
+                                    <option value="{{ u }}">{{ u }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3" id="div-ubicacion-otro" style="display:none;">
+                            <label class="form-label-custom">Especifique ubicación</label>
+                            <input type="text" name="ubicacion_otro" class="form-control-custom" maxlength="150">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label-custom">Piso</label>
+                            <input type="text" name="piso" class="form-control-custom" maxlength="10"
+                                   placeholder="Ej: 1, PB, sótano (opcional)">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label-custom">Nombre (opcional)</label>
+                            <input type="text" name="nombre" class="form-control-custom" maxlength="150"
+                                   placeholder="Dejar vacío para generar automático">
+                            <div class="form-text" style="color: var(--text-muted); font-size:0.8rem;">
+                                Si no ingresa un nombre, se generará uno como "PC - Laboratorio Piso 2".
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-teal w-100">Guardar Equipo</button>
+                        <a href="/equipos/lista" class="btn btn-outline-secondary w-100 mt-2">Cancelar</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('ubicacion').addEventListener('change', function() {
+        var otro = document.getElementById('div-ubicacion-otro');
+        otro.style.display = this.value === 'Otros' ? 'block' : 'none';
+    });
+</script>
+{% endblock %}

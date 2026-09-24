@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Incidencia #{{ incidencia.id }}{% endblock %}
+{% block content %}
+<div class="page-container">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/admin/dashboard">Dashboard</a></li>
+            <li class="breadcrumb-item active">Incidencia #{{ "%04d"|format(incidencia.id) }}</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card-hospital mb-4">
+                <div class="card-header-custom">
+                    <h3>🔍 Detalle de la Incidencia</h3>
+                </div>
+                <div class="card-body">
+                    <h5 class="fw-bold mb-3">{{ incidencia.descripcion }}</h5>
+                    <table class="table table-borderless">
+                        <tr>
+                            <th style="width: 140px;">Equipo:</th>
+                            <td>{{ incidencia.equipo.nombre if incidencia.equipo else '—' }} ({{ incidencia.equipo.ubicacion if incidencia.equipo else '—' }})</td>
+                        </tr>
+                        <tr>
+                            <th>Reportado:</th>
+                            <td>{{ incidencia.fecha_reporte.strftime('%d/%m/%Y %H:%M') if incidencia.fecha_reporte else '—' }} ({{ tiempo_abierta }})</td>
+                        </tr>
+                        <tr>
+                            <th>Estado:</th>
+                            <td>
+                                {% if incidencia.estado == 'Pendiente' %}
+                                    <span class="badge-estado badge-pendiente">{{ incidencia.estado }}</span>
+                                {% elif incidencia.estado == 'En Proceso' %}
+                                    <span class="badge-estado badge-proceso">{{ incidencia.estado }}</span>
+                                {% elif incidencia.estado == 'Resuelta' %}
+                                    <span class="badge-estado badge-resuelta">{{ incidencia.estado }}</span>
+                                {% else %}
+                                    <span class="badge-estado badge-cancelada">{{ incidencia.estado }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Técnico:</th>
+                            <td>
+                                {% if incidencia.tecnico %}
+                                    👤 {{ incidencia.tecnico.nombre }}
+                                {% else %}
+                                    <span class="tecnico-sin-asignar">Sin asignar</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Cambiar estado -->
+            <div class="card-hospital mb-3">
+                <div class="card-header-custom">
+                    <h3>⚙️ Cambiar estado</h3>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="/admin/incidencias/{{ incidencia.id }}/actualizar">
+                        <input type="hidden" name="accion" value="cambiar_estado">
+                        <select name="nuevo_estado" class="form-select mb-2">
+                            <option value="Pendiente" {% if incidencia.estado == 'Pendiente' %}selected{% endif %}>Pendiente</option>
+                            <option value="En Proceso" {% if incidencia.estado == 'En Proceso' %}selected{% endif %}>En Proceso</option>
+                            <option value="Resuelta" {% if incidencia.estado == 'Resuelta' %}selected{% endif %}>Resuelta</option>
+                            <option value="Cancelada" {% if incidencia.estado == 'Cancelada' %}selected{% endif %}>Cancelada</option>
+                        </select>
+                        <button type="submit" class="btn btn-warning btn-sm w-100">Actualizar estado</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Asignar técnico -->
+            <div class="card-hospital">
+                <div class="card-header-custom">
+                    <h3>👤 Asignar técnico</h3>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="/admin/incidencias/{{ incidencia.id }}/actualizar">
+                        <input type="hidden" name="accion" value="asignar_tecnico">
+                        <select name="tecnico_id" class="form-select mb-2">
+                            <option value="">-- Sin asignar --</option>
+                            {% for t in tecnicos %}
+                                <option value="{{ t.id }}" {% if incidencia.tecnico_id == t.id %}selected{% endif %}>{{ t.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-teal btn-sm w-100">Asignar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

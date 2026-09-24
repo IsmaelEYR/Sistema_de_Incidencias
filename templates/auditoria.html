@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Historial de Movimientos{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <h2>📜 Historial de Movimientos (Auditoría)</h2>
+        <p>Registro de actividades en el sistema (Solo lectura)</p>
+    </div>
+
+    <div class="card-hospital">
+        {% if logs %}
+        <div class="table-responsive">
+            <table class="table table-hospital" id="tablaAuditoria">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Fecha y Hora</th>
+                        <th>Usuario</th>
+                        <th>Acción Realizada</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td data-label="ID">{{ log.id }}</td>
+                        <td data-label="Fecha y Hora">{{ log.fecha.strftime('%d/%m/%Y %H:%M:%S') }}</td>
+                        <td data-label="Usuario">
+                            {% if log.usuario %}
+                                👤 {{ log.usuario.nombre }} ({{ log.usuario.rol }})
+                            {% else %}
+                                🤖 Sistema
+                            {% endif %}
+                        </td>
+                        <td data-label="Acción Realizada">{{ log.accion }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">📭</div>
+            <p>No hay registros de auditoría aún.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_head %}
+<!-- DataTables CSS -->
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- jQuery & DataTables JS -->
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+    $(document).ready(function() {
+        $('#tablaAuditoria').DataTable({
+            "language": {
+                "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json"
+            },
+            "order": [[ 0, "desc" ]],
+            "pageLength": 25,
+            "lengthMenu": [10, 25, 50, 100]
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+    <div class="page-header d-flex justify-content-between align-items-start">
+        <div>
+            <h2>Panel de Control</h2>
+            <p>Monitoreo en tiempo real de incidencias técnicas reportadas</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="/equipos/lista" class="btn btn-outline-teal">📋 Ver Equipos</a>
+            <a href="/equipos/crear" class="btn btn-teal"><i class="bi bi-plus-lg"></i> Nuevo Equipo</a>
+        </div>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Total de Tickets</div>
+            <div class="stat-value">{{ stats.total }}</div>
+        </div>
+        <div class="stat-card pendiente">
+            <div class="stat-label">Pendientes</div>
+            <div class="stat-value">{{ stats.pendientes }}</div>
+        </div>
+        <div class="stat-card proceso">
+            <div class="stat-label">En Proceso</div>
+            <div class="stat-value">{{ stats.en_proceso }}</div>
+        </div>
+        <div class="stat-card resuelta">
+            <div class="stat-label">Resueltas</div>
+            <div class="stat-value">{{ stats.resueltas }}</div>
+        </div>
+    </div>
+
+    <!-- Tabla de incidencias -->
+    <div class="card-hospital">
+        <div class="card-header-custom">
+            <h3>📋 Incidencias Registradas</h3>
+            <span class="text-muted" style="font-size:0.85rem;">{{ incidencias|length }} registro(s)</span>
+        </div>
+
+        {% if incidencias %}
+        <div class="table-responsive">
+            <table class="table table-hospital">
+                <thead>
+                    <tr>
+                        <th>Ticket</th>
+                        <th>Descripción</th>
+                        <th>Equipo</th>
+                        <th>Estado</th>
+                        <th>Técnico</th>
+                        <th>Tiempo</th>
+                        <th>Fecha</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for inc in incidencias %}
+                    <tr>
+                        <td data-label="Ticket">
+                            <span class="ticket-id">#{{ "%04d"|format(inc.id) }}</span>
+                        </td>
+                        <td data-label="Descripción" class="descripcion-cell" title="{{ inc.descripcion }}">
+                            {{ inc.descripcion }}
+                        </td>
+                        <td data-label="Equipo">
+                            <div class="equipo-info">
+                                <span class="equipo-nombre">{{ inc.equipo.nombre if inc.equipo else '—' }}</span>
+                                <span class="equipo-ubicacion">📍 {{ inc.equipo.ubicacion if inc.equipo else '—' }}</span>
+                            </div>
+                        </td>
+                        <td data-label="Estado">
+                            {% if inc.estado == 'Pendiente' %}
+                                <span class="badge-estado badge-pendiente">{{ inc.estado }}</span>
+                            {% elif inc.estado == 'En Proceso' %}
+                                <span class="badge-estado badge-proceso">{{ inc.estado }}</span>
+                            {% elif inc.estado == 'Resuelta' %}
+                                <span class="badge-estado badge-resuelta">{{ inc.estado }}</span>
+                            {% else %}
+                                <span class="badge-estado badge-cancelada">{{ inc.estado }}</span>
+                            {% endif %}
+                        </td>
+                        <td data-label="Técnico" class="tecnico-cell">
+                            {% if inc.tecnico %}
+                                👤 {{ inc.tecnico.nombre }}
+                            {% else %}
+                                <span class="tecnico-sin-asignar">Sin asignar</span>
+                            {% endif %}
+                        </td>
+                        <td data-label="Tiempo">
+                            <span class="tiempo-transcurrido">{{ inc.tiempo_transcurrido }}</span>
+                        </td>
+                        <td data-label="Fecha" class="fecha-cell">
+                            {{ inc.fecha_reporte.strftime('%d/%m/%Y %H:%M') if inc.fecha_reporte else '—' }}
+                        </td>
+                        <td data-label="Acciones" class="acciones-cell">
+                            <a href="/incidencias/{{ inc.id }}/detalle" class="btn btn-sm btn-outline-teal" title="Ver detalle">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#asignarModal{{ inc.id }}" title="Asignar técnico">
+                                <i class="bi bi-person-plus"></i>
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- Modal de asignación rápida -->
+                    <div class="modal fade" id="asignarModal{{ inc.id }}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-sm">
+                            <div class="modal-content">
+                                <form method="post" action="/incidencias/{{ inc.id }}/actualizar">
+                                    <input type="hidden" name="accion" value="asignar_tecnico">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Asignar técnico a #{{ "%04d"|format(inc.id) }}</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <select name="tecnico_id" class="form-select">
+                                            <option value="">-- Sin asignar --</option>
+                                            {% for t in tecnicos %}
+                                                <option value="{{ t.id }}" {% if inc.tecnico_id == t.id %}selected{% endif %}>{{ t.nombre }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="submit" class="btn btn-teal btn-sm">Guardar</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">📭</div>
+            <p>No hay incidencias registradas aún.</p>
+            <p style="font-size:0.85rem;">Los reportes aparecerán aquí cuando el personal escanee un código QR.</p>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}
