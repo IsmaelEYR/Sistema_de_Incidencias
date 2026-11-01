@@ -4,12 +4,12 @@ from sqlalchemy.orm import DeclarativeBase, sessionmaker
 import os
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-SQLALCHEMY_DATABASE_URL = f"sqlite:///{os.path.join(BASE_DIR, 'hospital_incidencias.db')}"
 
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-)
+# URL de conexión a PostgreSQL
+SQLALCHEMY_DATABASE_URL = "postgresql://postgres:1234567@localhost:5432/sistema_de_incidencias"
+
+# IMPORTANTE: Eliminamos connect_args ya que no es necesario para PostgreSQL
+engine = create_engine(SQLALCHEMY_DATABASE_URL)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
