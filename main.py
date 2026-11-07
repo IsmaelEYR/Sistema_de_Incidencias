@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.exc import IntegrityError
 
@@ -39,9 +39,24 @@ async def integrity_error_handler(_: Request, exc: IntegrityError):
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
     accept = request.headers.get("accept", "")
-    if exc.status_code in (401, 403) and "text/html" in accept:
-        if request.url.path.startswith("/admin") or request.url.path.startswith("/equipos") or request.url.path.startswith("/dashboard") or request.url.path.startswith("/panel"):
-            return RedirectResponse(url="/login", status_code=303)
+    if "text/html" in accept:
+        # Sin sesión o sesión expirada → al login (y se limpia la cookie inválida)
+        if exc.status_code == 401:
+            response = RedirectResponse(url="/login", status_code=303)
+            response.delete_cookie(key="access_token", path="/")
+            return response
+        # Con sesión pero sin permisos / recurso inexistente → página de error,
+        # NO se expulsa al usuario al login.
+        if exc.status_code in (403, 404, 501):
+            from fastapi.templating import Jinja2Templates
+            from config import settings as _settings
+            html = Jinja2Templates(directory="templates").get_template("error.html").render(
+                request=request,
+                status_code=exc.status_code,
+                detail=exc.detail,
+                hospital_name=_settings.hospital_name,
+            )
+            return HTMLResponse(content=html, status_code=exc.status_code)
     return JSONResponse(
         status_code=exc.status_code,
         content={"detail": exc.detail},

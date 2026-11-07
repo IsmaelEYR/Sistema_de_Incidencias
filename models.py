@@ -54,6 +54,10 @@ class Incidencia(Base):
     descripcion = Column(String(1000), nullable=False)
     estado = Column(String(30), default="Pendiente", nullable=False)
     fecha_reporte = Column(DateTime(timezone=True), default=caracas_now)
+    fecha_cierre = Column(DateTime(timezone=True), nullable=True)
+    detalle_verificacion_cierre = Column(Text, nullable=True)
+    duracion_total_min = Column(Integer, nullable=True)
+    duracion_total_horas = Column(Integer, nullable=True)
 
     equipo_id = Column(Integer, ForeignKey("equipos.id"), nullable=False, index=True)
     tecnico_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True, index=True)
@@ -142,6 +146,15 @@ class DetallePC(Base):
     fecha_levantamiento = Column(DateTime(timezone=True), default=caracas_now, onupdate=caracas_now)
 
     equipo = relationship("Equipo", back_populates="detalle_pc")
+
+class TipoGeneral(Base):
+    __tablename__ = "tipo_general"
+    id = Column(Integer, primary_key=True, index=True)
+    categoria = Column(String(50), nullable=False)  # UBICACION, ESTADO_EQUIPO, ACCION
+    valor = Column(String(150), nullable=False)
+    activo = Column(Integer, default=1, nullable=False)
+    creado_en = Column(DateTime(timezone=True), default=caracas_now)
+    actualizado_en = Column(DateTime(timezone=True), default=caracas_now, onupdate=caracas_now)
 
 
 class LogAuditoria(Base):

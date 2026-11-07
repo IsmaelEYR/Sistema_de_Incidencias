@@ -15,17 +15,19 @@
                     <div class="alert alert-danger">{{ error }}</div>
                     {% endif %}
 
-                    <form method="post" action="{% if editando %}/admin/usuarios/{{ usuario.id }}/editar{% else %}/admin/usuarios/crear{% endif %}">
+                    {% set uf = usuario_form %}
+                    {% set uf_rol = (uf.rol if uf and uf.rol else '')|lower|trim %}
+                    <form method="post" action="{% if editando %}/admin/usuarios/{{ uf.id }}/editar{% else %}/admin/usuarios/crear{% endif %}">
                         <div class="mb-3">
                             <label class="form-label-custom">Nombre *</label>
                             <input type="text" name="nombre" class="form-control-custom" maxlength="100"
-                                   value="{{ usuario.nombre if usuario else '' }}" required>
+                                   value="{{ uf.nombre if uf else '' }}" required>
                         </div>
 
                         <div class="mb-3" id="email-group">
                             <label class="form-label-custom">Email</label>
                             <input type="email" name="email" id="email-input" class="form-control-custom" maxlength="150"
-                                   value="{{ usuario.email if usuario else '' }}">
+                                   value="{{ uf.email if uf and uf.email else '' }}">
                         </div>
 
                         <div class="mb-3" id="password-group">
@@ -38,9 +40,12 @@
                             <label class="form-label-custom">Rol *</label>
                             <select name="rol" id="rol-select" class="form-control-custom" required>
                                 <option value="">Seleccione...</option>
-                                <option value="Supervisor" {% if usuario and usuario.rol == 'Supervisor' %}selected{% endif %}>Supervisor</option>
-                                <option value="Técnico" {% if usuario and usuario.rol == 'Técnico' %}selected{% endif %}>Técnico</option>
-                                <option value="Asistente Administrativo" {% if usuario and usuario.rol == 'Asistente Administrativo' %}selected{% endif %}>Asistente Administrativo</option>
+                                {% if es_admin %}
+                                <option value="Administrador" {% if uf_rol in ['admin', 'administrador'] %}selected{% endif %}>Administrador</option>
+                                {% endif %}
+                                <option value="Supervisor" {% if uf_rol == 'supervisor' %}selected{% endif %}>Supervisor</option>
+                                <option value="Técnico" {% if uf_rol in ['técnico', 'tecnico'] %}selected{% endif %}>Técnico</option>
+                                <option value="Asistente Administrativo" {% if uf_rol in ['asistente administrativo', 'asistente'] %}selected{% endif %}>Asistente Administrativo</option>
                             </select>
                         </div>
 
@@ -65,7 +70,7 @@
         const isEditando = {{ 'true' if editando else 'false' }};
         
         function checkRol() {
-            if (rolSelect.value === "Supervisor" || rolSelect.value === "Asistente Administrativo") {
+            if (["Administrador", "Supervisor", "Asistente Administrativo"].includes(rolSelect.value)) {
                 passwordGroup.style.display = "block";
                 if (!isEditando) {
                     passwordInput.setAttribute("required", "required");

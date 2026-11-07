@@ -5,7 +5,13 @@ import bcrypt
 from config import settings
 
 def verificar_password(password: str, hashed: str) -> bool:
-    return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+    if not password or not hashed:
+        return False
+    try:
+        return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+    except ValueError:
+        # Hash vacío o con formato inválido: se trata como credencial incorrecta.
+        return False
 
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')

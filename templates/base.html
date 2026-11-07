@@ -23,14 +23,20 @@
         <div class="d-none d-md-flex gap-1">
             <a href="/panel" class="nav-link nav-link-custom {% block nav_dashboard %}{% endblock %}">Panel de Control</a>
             
-            {% set usuario = request.state.usuario if request.state and 'usuario' in request.state._state else None %}
+            {% set _st = request.state._state if request is defined and request and request.state else {} %}
+            {% set usuario_nav = _st.get('usuario') %}
+            {% set rol_nav = _st.get('role', '') %}
             
-            {% if usuario %}
-                <!-- Enlaces solo para administradores/supervisores -->
-                {% if usuario.rol == 'Supervisor' or usuario.rol == 'Asistente Administrativo' %}
+            {% if usuario_nav %}
+                <!-- Enlaces solo para administradores/supervisores (rol ya normalizado a minúsculas) -->
+                {% if rol_nav in ['administrador', 'supervisor'] %}
                 <a href="/equipos/lista" class="nav-link nav-link-custom {% block nav_equipos %}{% endblock %}">Equipos</a>
+                {% endif %}
+                {% if rol_nav == 'administrador' %}
                 <a href="/admin/usuarios" class="nav-link nav-link-custom {% block nav_usuarios %}{% endblock %}">Usuarios</a>
                 <a href="/admin/auditoria" class="nav-link nav-link-custom {% block nav_auditoria %}{% endblock %}">Auditoría</a>
+                {% endif %}
+                {% if rol_nav in ['administrador', 'supervisor', 'asistente administrativo'] %}
                 <a href="/admin/historial-general" class="nav-link nav-link-custom {% block nav_historial %}{% endblock %}">Historial</a>
                 {% endif %}
                 <a href="/logout" class="nav-link nav-link-custom">Cerrar sesión</a>

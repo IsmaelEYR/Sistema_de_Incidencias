@@ -13,12 +13,14 @@
                 <h2>🗄️ Historial General de Incidencias</h2>
                 <p>Histórico completo de todos los registros del sistema</p>
             {% else %}
-                <h2>Panel de Control - Supervisor</h2>
+                <h2>Panel de Control - {% if es_admin %}Administrador{% elif rol_usuario == 'asistente administrativo' %}Asistente Administrativo{% else %}Supervisor{% endif %}</h2>
                 <p>Monitoreo y gestión de incidencias técnicas</p>
             {% endif %}
         </div>
         <div class="d-flex gap-2">
+            {% if es_admin or rol_usuario == 'supervisor' %}
             <a href="/equipos/crear" class="btn btn-teal">+ Nuevo Equipo</a>
+            {% endif %}
         </div>
     </div>
 

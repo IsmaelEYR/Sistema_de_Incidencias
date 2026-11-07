@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session, joinedload
 
 import models
 import schemas
+from models import caracas_now
 from exceptions import ForeignKeyError, NotFoundError
 from services.equipos import obtener_equipo
 from services.usuarios import obtener_usuario
@@ -147,8 +148,18 @@ def actualizar_incidencia(db: Session, incidencia_id: int, datos: schemas.Incide
         if incidencia.estado != datos.estado.value:
             detalles.append(f"Estado cambiado a {datos.estado.value}")
             incidencia.estado = datos.estado.value
-            
-    db.commit()
+
+            # SLA calculation when incident is resolved
+            if datos.estado.value == "Resuelta":
+                incidencia.fecha_cierre = caracas_now()
+                if incidencia.fecha_reporte:
+                    delta = incidencia.fecha_cierre - incidencia.fecha_reporte
+                    total_minutes = int(delta.total_seconds() // 60)
+                    incidencia.duracion_total_min = total_minutes
+                    incidencia.duracion_total_horas = total_minutes // 60
+                if getattr(datos, "detalle_verificacion_cierre", None):
+                    incidencia.detalle_verificacion_cierre = datos.detalle_verificacion_cierre
+                    db.commit()
     db.refresh(incidencia)
     
     if detalles:

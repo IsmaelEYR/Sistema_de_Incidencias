@@ -5,6 +5,7 @@ from enum import Enum
 
 
 class RolEnum(str, Enum):
+    administrador = "Administrador"
     supervisor = "Supervisor"
     tecnico = "Técnico"
     asistente = "Asistente Administrativo"
@@ -92,6 +93,11 @@ class IncidenciaResponse(BaseModel):
     fecha_reporte: datetime
     equipo_id: int
     tecnico_id: Optional[int]
+    # SLA fields (optional)
+    fecha_cierre: Optional[datetime] = None
+    detalle_verificacion_cierre: Optional[str] = None
+    duracion_total_min: Optional[int] = None
+    duracion_total_horas: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -100,6 +106,8 @@ class IncidenciaResponse(BaseModel):
 class IncidenciaUpdate(BaseModel):
     estado: Optional[EstadoIncidenciaEnum] = None
     tecnico_id: Optional[int] = Field(None, gt=0)
+    # Optional verification detail when closing
+    detalle_verificacion_cierre: Optional[str] = None
 
 
 class IncidenciaDetalleResponse(BaseModel):
@@ -112,6 +120,11 @@ class IncidenciaDetalleResponse(BaseModel):
     equipo_ubicacion: str
     tecnico_id: Optional[int]
     tecnico_nombre: Optional[str]
+    # SLA fields (optional)
+    fecha_cierre: Optional[datetime] = None
+    detalle_verificacion_cierre: Optional[str] = None
+    duracion_total_min: Optional[int] = None
+    duracion_total_horas: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -123,6 +136,23 @@ class MensajeResponse(BaseModel):
 
 class DetallePCCreate(BaseModel):
     pass
+
+# New master table schemas for TipoGeneral
+class TipoGeneralBase(BaseModel):
+    categoria: str = Field(..., max_length=50)
+    valor: str = Field(..., max_length=150)
+    activo: int = Field(default=1, ge=0, le=1)
+
+class TipoGeneralCreate(TipoGeneralBase):
+    pass
+
+class TipoGeneralResponse(TipoGeneralBase):
+    id: int
+    creado_en: datetime
+    actualizado_en: datetime
+
+    class Config:
+        from_attributes = True
 
 class DetallePCResponse(BaseModel):
     id: int

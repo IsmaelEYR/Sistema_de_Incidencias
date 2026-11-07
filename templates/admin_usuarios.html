@@ -113,7 +113,7 @@ function confirmarEliminacion(id, nombre, rol) {
     document.getElementById('formEliminarUsuario').action = '/admin/usuarios/' + id + '/eliminar';
     document.getElementById('nombreUsuarioEliminar').innerText = nombre;
     
-    if (rol === 'Supervisor') {
+    if ((rol || '').trim().toLowerCase() === 'supervisor') {
         document.getElementById('seccionPasswordSupervisor').style.display = 'block';
         document.getElementById('supervisorPassword').required = true;
         document.getElementById('textoEliminarGenerico').style.display = 'none';

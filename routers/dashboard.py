@@ -10,7 +10,7 @@ from config import settings
 import schemas
 from services import equipos as equipos_service
 from services import incidencias as incidencias_service
-from auth.dependencies import get_current_user_optional
+from auth.dependencies import get_current_user_optional, normalizar_rol, ROLES_PANEL
 from models import Usuario, caracas_now
 
 router = APIRouter(tags=["Dashboard"])
@@ -25,7 +25,7 @@ def render_template(template_name: str, context: dict, status_code: int = 200) -
 def panel_redireccion(user: Usuario = Depends(get_current_user_optional)):
     if not user:
         return RedirectResponse("/dashboard", status_code=303)
-    if user.rol in ["Supervisor", "Asistente Administrativo"]:
+    if normalizar_rol(user.rol) in ROLES_PANEL:
         return RedirectResponse("/admin/dashboard", status_code=303)
     return RedirectResponse("/dashboard", status_code=303)
 

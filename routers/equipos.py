@@ -8,7 +8,7 @@ from config import settings
 from dependencies import get_db
 from exceptions import DuplicateError
 from services import equipos as equipos_service
-from auth.dependencies import require_role
+from auth.dependencies import require_gestion_equipos
 from services.auditoria import registrar_accion
 
 router = APIRouter(prefix="/equipos", tags=["Equipos"])
@@ -22,8 +22,9 @@ UBICACIONES = [
     "Emergencia", "Otros"
 ]
 
-# Dependencia para requerir supervisor en las rutas web
-require_supervisor = require_role("Supervisor")
+# Gestión de equipos: Administrador (acceso total) y Supervisor.
+# Se mantiene el nombre para no tocar el resto de las rutas.
+require_supervisor = require_gestion_equipos
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -50,11 +51,12 @@ def crear_equipo_desde_formulario(
     tipo: str = Form(...),
     piso: str = Form(None),
     nombre: str = Form(None),
+    ubicacion_otro: str = Form(None),
     db: Session = Depends(get_db),
     user = Depends(require_supervisor),
 ):
     if ubicacion.lower() == "otros":
-        ubicacion = request.form().get("ubicacion_otro", "").strip()
+        ubicacion = (ubicacion_otro or "").strip()
         if not ubicacion:
             return templates.TemplateResponse(
                 request=request,
@@ -133,11 +135,12 @@ def actualizar_equipo(
     tipo: str = Form(...),
     piso: str = Form(None),
     nombre: str = Form(None),
+    ubicacion_otro: str = Form(None),
     db: Session = Depends(get_db),
     user = Depends(require_supervisor),
 ):
     if ubicacion.lower() == "otros":
-        ubicacion = request.form().get("ubicacion_otro", "").strip()
+        ubicacion = (ubicacion_otro or "").strip()
         if not ubicacion:
             equipo = equipos_service.obtener_equipo(db, id)
             return templates.TemplateResponse(
