@@ -40,8 +40,15 @@
                         <td data-label="Tipo">{{ equipo.tipo }}</td>
                         <td data-label="Ubicación">📍 {{ equipo.ubicacion }}</td>
                         <td data-label="Piso">{{ equipo.piso or '—' }}</td>
-                        <td data-label="Código QR"><code>{{ equipo.codigo_qr }}</code></td>
+                        <td data-label="Código QR">
+                            <a href="/reportar/{{ equipo.codigo_qr }}" target="_blank" title="Abrir pantalla de reporte (como al escanear el QR)" style="text-decoration:none;">
+                                <code>{{ equipo.codigo_qr }}</code> 🔗
+                            </a>
+                        </td>
                         <td data-label="Acciones" class="acciones-cell">
+                            <a href="/reportar/{{ equipo.codigo_qr }}" target="_blank" class="btn btn-sm btn-outline-info" title="Abrir pantalla de reporte">
+                                📱
+                            </a>
                             <a href="/equipos/{{ equipo.id }}/qr" class="btn btn-sm btn-outline-teal" download title="Descargar QR">
                                 📥
                             </a>

@@ -17,7 +17,7 @@ def reset():
             nombre="admin",
             email=settings.admin_email,
             rol="Administrador",
-            activo=1,
+            activo=True,
             password_hash=hash_password(settings.admin_password)
         )
         db.add(admin)

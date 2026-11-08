@@ -51,6 +51,16 @@
             <!-- Formulario de reporte -->
             <form method="post">
                 <div class="mb-3">
+                    <label for="reportado_por_nombre" class="form-label-custom">Nombre y Apellido del Reportante *</label>
+                    <input type="text" name="reportado_por_nombre" id="reportado_por_nombre" class="form-control-custom"
+                           placeholder="Ej: Dr. Juan Pérez / Lic. María García" minlength="3" maxlength="150" required>
+                </div>
+                <div class="mb-3">
+                    <label for="reportado_por_cedula" class="form-label-custom">Cédula de Identidad *</label>
+                    <input type="text" name="reportado_por_cedula" id="reportado_por_cedula" class="form-control-custom"
+                           placeholder="Ej: V-12345678" minlength="6" maxlength="50" required>
+                </div>
+                <div class="mb-3">
                     <label for="descripcion" class="form-label-custom">Describa la falla *</label>
                     <textarea name="descripcion" id="descripcion" class="form-control-custom" rows="5"
                               placeholder="Describa detalladamente el problema que presenta el equipo..."

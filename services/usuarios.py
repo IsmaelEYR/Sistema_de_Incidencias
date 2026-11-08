@@ -18,16 +18,16 @@ def obtener_usuario_por_nombre(db: Session, nombre: str) -> models.Usuario | Non
 def listar_usuarios(db: Session, inactivos: bool = False) -> list[models.Usuario]:
     query = db.query(models.Usuario)
     if inactivos:
-        query = query.filter(models.Usuario.activo == 0)
+        query = query.filter(models.Usuario.activo.is_(False))
     else:
-        query = query.filter(models.Usuario.activo == 1)
+        query = query.filter(models.Usuario.activo.is_(True))
     return query.order_by(models.Usuario.nombre).all()
 
 
 def listar_usuarios_activos_por_rol(db: Session, rol: str) -> list[models.Usuario]:
     return (
         db.query(models.Usuario)
-        .filter(models.Usuario.rol == rol, models.Usuario.activo == 1)
+        .filter(models.Usuario.rol == rol, models.Usuario.activo.is_(True))
         .order_by(models.Usuario.nombre)
         .all()
     )
@@ -73,5 +73,5 @@ def actualizar_usuario(db: Session, usuario_id: int, datos) -> models.Usuario:
 def eliminar_usuario(db: Session, usuario_id: int) -> None:
     usuario = obtener_usuario(db, usuario_id)
     # Hacemos un soft delete
-    usuario.activo = 0
+    usuario.activo = False
     db.commit()
