@@ -113,6 +113,12 @@ def lista_equipos(request: Request, db: Session = Depends(get_db)):
     )
 
 
+@router.get("/inventario-completo", dependencies=[Depends(require_supervisor)])
+def inventario_completo(db: Session = Depends(get_db)):
+    """Retorna el inventario consolidado de equipos y hardware desde la vista public.vw_inventario_equipos."""
+    return equipos_service.listar_inventario_completo_vista(db)
+
+
 @router.get("/{id}/editar", response_class=HTMLResponse, dependencies=[Depends(require_supervisor)])
 def editar_equipo_form(id: int, request: Request, db: Session = Depends(get_db)):
     equipo = equipos_service.obtener_equipo(db, id)

@@ -250,7 +250,145 @@ class LogAuditoria(Base):
 
 
 # =========================================================================
-# MIGRACIÓN AUTOMÁTICA SEGURA DE COLUMNAS
+# VISTAS DE BASE DE DATOS (vistas.sql / vistas.txt)
+# =========================================================================
+VISTAS_SQL = [
+    # 1. Vista de inventario completo de equipos
+    """
+    CREATE OR REPLACE VIEW public.vw_inventario_equipos AS
+    SELECT 
+        e.id AS equipo_id,
+        e.codigo_qr,
+        e.nombre AS equipo_nombre,
+        tu.nombre AS ubicacion_hospital,
+        te.nombre AS estado_operativo_maquina,
+        e.activo,
+        
+        -- Especificaciones de Hardware desde detalle_pc
+        d.usuario_asignado,
+        d.ip,
+        d.tipo_ip,
+        d.mac,
+        d.dominio,
+        d.sistema_operativo,
+        d.version_so,
+        d.antivirus,
+        d.software_adicional,
+        d.marca_modelo_cpu,
+        d.procesador,
+        d.ram_gb,
+        d.ram_tipo,
+        d.ram_slots,
+        d.almacenamiento_tipo,
+        d.almacenamiento_capacidad,
+        d.puertos_video,
+        d.monitor_marca,
+        d.monitor_modelo,
+        d.monitor_serial,
+        d.monitor_bn,
+        d.teclado_marca,
+        d.teclado_serial,
+        d.teclado_bn,
+        d.mouse_marca,
+        d.mouse_serial,
+        d.mouse_bn,
+        d.proteccion_electrica_tipo,
+        d.proteccion_electrica_marca,
+        d.proteccion_electrica_bn,
+        d.impresora_marca,
+        d.impresora_modelo,
+        d.impresora_ip,
+        d.impresora_bn,
+        d.observaciones,
+        d.fecha_levantamiento,
+        
+        d.id AS detalle_pc_id
+    FROM public.equipos e
+    LEFT JOIN public.tipo_general tu ON e.tipo_ubicacion_id = tu.id AND tu.categoria = 'UBICACION'
+    LEFT JOIN public.tipo_general te ON e.tipo_estado_id = te.id AND te.categoria = 'ESTADO_EQUIPO'
+    LEFT JOIN public.detalle_pc d ON d.equipo_id = e.id;
+    """,
+    # 2. Vista de incidencias detalladas y trazabilidad
+    """
+    CREATE OR REPLACE VIEW public.vw_incidencias_detalladas AS
+    SELECT 
+        i.id AS incidencia_id,
+        i.reportado_por_nombre,
+        i.reportado_por_cedula,
+        i.descripcion,
+        i.estado,
+        i.detalle_verificacion_cierre,
+        
+        -- Tiempos de control y SLAs
+        i.fecha_reporte,
+        i.fecha_asignacion,
+        i.fecha_proceso,
+        i.fecha_solucion,
+        i.duracion_hasta_asignacion_min,
+        i.duracion_proceso_min,
+        i.duracion_solucion_min,
+        i.duracion_total_min,
+        
+        -- Formato legible de tiempo transcurrido total (ej: "3h 15m")
+        CASE 
+            WHEN i.duracion_total_min IS NOT NULL THEN 
+                CONCAT(FLOOR(i.duracion_total_min / 60), 'h ', MOD(i.duracion_total_min, 60), 'm')
+            ELSE 'En proceso'
+        END AS duracion_total_formateada,
+
+        -- Datos del Equipo asociado
+        e.id AS equipo_id,
+        e.codigo_qr,
+        e.nombre AS equipo_nombre,
+        tu.nombre AS ubicacion_actual,
+        te.nombre AS estado_operativo_maquina,
+
+        -- Datos del Técnico Asignado
+        u.id AS tecnico_id,
+        u.nombre AS tecnico_nombre,
+        u.email AS tecnico_email
+
+    FROM public.incidencias i
+    LEFT JOIN public.equipos e ON i.equipo_id = e.id
+    LEFT JOIN public.tipo_general tu ON e.tipo_ubicacion_id = tu.id AND tu.categoria = 'UBICACION'
+    LEFT JOIN public.tipo_general te ON e.tipo_estado_id = te.id AND te.categoria = 'ESTADO_EQUIPO'
+    LEFT JOIN public.usuarios u ON i.tecnico_id = u.id;
+    """,
+    # 3. Vista de incidencias activas (Para el panel del Supervisor)
+    """
+    CREATE OR REPLACE VIEW public.vw_incidencias_activas AS
+    SELECT * 
+    FROM public.vw_incidencias_detalladas 
+    WHERE estado IN ('PENDIENTE', 'EN_PROCESO');
+    """,
+    # 4. Vista de KPIs y rendimiento técnico
+    """
+    CREATE OR REPLACE VIEW public.vw_kpis_rendimiento AS
+    SELECT 
+        COUNT(*) AS total_incidencias,
+        COUNT(*) FILTER (WHERE estado = 'PENDIENTE') AS total_pendientes,
+        COUNT(*) FILTER (WHERE estado = 'EN_PROCESO') AS total_en_proceso,
+        COUNT(*) FILTER (WHERE estado = 'RESUELTO') AS total_resueltas,
+        ROUND(AVG(duracion_total_min) FILTER (WHERE duracion_total_min IS NOT NULL), 2) AS tiempo_promedio_resolucion_min
+    FROM public.incidencias;
+    """,
+]
+
+
+def crear_vistas(conn=None) -> None:
+    """Ejecuta la creación o actualización de las vistas en PostgreSQL."""
+    if conn is not None:
+        for sql in VISTAS_SQL:
+            conn.execute(text(sql))
+    else:
+        with engine.connect() as connection:
+            for sql in VISTAS_SQL:
+                connection.execute(text(sql))
+            connection.commit()
+
+
+# =========================================================================
+# MIGRACIÓN AUTOMÁTICA SEGURA DE COLUMNAS Y VISTAS
 # =========================================================================
 def _column_exists(table: str, column: str) -> bool:
     inspector = inspect(engine)
@@ -290,5 +428,8 @@ def migrate_db() -> None:
         # Migraciones en historial_incidencias
         if not _column_exists("historial_incidencias", "tipo_accion_id"):
             conn.execute(text("ALTER TABLE historial_incidencias ADD COLUMN tipo_accion_id BIGINT REFERENCES tipo_general(id)"))
+
+        # Creación / Actualización automática de vistas
+        crear_vistas(conn)
 
         conn.commit()

@@ -126,7 +126,20 @@ def listar_incidencias_dashboard(db: Session) -> list[models.Incidencia]:
 
 
 def listar_incidencias_detalle(db: Session) -> list[schemas.IncidenciaDetalleResponse]:
-    return [incidencia_a_detalle(i) for i in listar_incidencias(db)]
+    from sqlalchemy import text
+    resultado = db.execute(text("SELECT *, incidencia_id AS id FROM public.vw_incidencias_detalladas ORDER BY fecha_reporte DESC"))
+    return [schemas.IncidenciaDetalleResponse.model_validate(dict(row)) for row in resultado.mappings()]
+
+
+def obtener_incidencia_detalle(db: Session, incidencia_id: int) -> schemas.IncidenciaDetalleResponse:
+    from sqlalchemy import text
+    row = db.execute(
+        text("SELECT *, incidencia_id AS id FROM public.vw_incidencias_detalladas WHERE incidencia_id = :id"),
+        {"id": incidencia_id}
+    ).mappings().first()
+    if not row:
+        raise NotFoundError("Incidencia", incidencia_id)
+    return schemas.IncidenciaDetalleResponse.model_validate(dict(row))
 
 
 def obtener_incidencia(db: Session, incidencia_id: int) -> models.Incidencia:
@@ -325,24 +338,40 @@ def actualizar_incidencia(db: Session, incidencia_id: int, datos: schemas.Incide
 
 
 def obtener_estadisticas(db: Session) -> dict[str, int]:
-    incidencias = db.query(models.Incidencia).all()
-    
-    pendientes = 0
-    en_proceso = 0
-    resueltas = 0
-    
-    for inc in incidencias:
-        est = _normalizar_estado(inc.estado)
-        if est == "PENDIENTE":
-            pendientes += 1
-        elif est == "EN_PROCESO":
-            en_proceso += 1
-        elif est in ["RESUELTO", "CERRADO"]:
-            resueltas += 1
-
+    kpis = obtener_kpis_vista(db)
     return {
-        "total": len(incidencias),
-        "pendientes": pendientes,
-        "en_proceso": en_proceso,
-        "resueltas": resueltas,
+        "total": int(kpis.get("total_incidencias") or 0),
+        "pendientes": int(kpis.get("total_pendientes") or 0),
+        "en_proceso": int(kpis.get("total_en_proceso") or 0),
+        "resueltas": int(kpis.get("total_resueltas") or 0),
+        "tiempo_promedio_resolucion_min": kpis.get("tiempo_promedio_resolucion_min"),
     }
+
+
+def obtener_kpis_vista(db: Session) -> dict:
+    """Consulta la vista public.vw_kpis_rendimiento retornando los indicadores clave de rendimiento."""
+    from sqlalchemy import text
+    row = db.execute(text("SELECT * FROM public.vw_kpis_rendimiento")).mappings().first()
+    if not row:
+        return {
+            "total_incidencias": 0,
+            "total_pendientes": 0,
+            "total_en_proceso": 0,
+            "total_resueltas": 0,
+            "tiempo_promedio_resolucion_min": None,
+        }
+    return dict(row)
+
+
+def listar_incidencias_detalladas_vista(db: Session) -> list[dict]:
+    """Consulta la vista public.vw_incidencias_detalladas con tiempos de SLA y nombres consolidados."""
+    from sqlalchemy import text
+    resultado = db.execute(text("SELECT * FROM public.vw_incidencias_detalladas ORDER BY fecha_reporte DESC"))
+    return [dict(row) for row in resultado.mappings()]
+
+
+def listar_incidencias_activas_vista(db: Session) -> list[dict]:
+    """Consulta la vista public.vw_incidencias_activas con tickets pendientes y en proceso."""
+    from sqlalchemy import text
+    resultado = db.execute(text("SELECT * FROM public.vw_incidencias_activas ORDER BY fecha_reporte DESC"))
+    return [dict(row) for row in resultado.mappings()]

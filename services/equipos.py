@@ -148,3 +148,10 @@ def generar_qr_equipo(db: Session, equipo_id: int):
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error interno al generar el código QR: {str(e)}")
+
+
+def listar_inventario_completo_vista(db: Session) -> list[dict]:
+    """Consulta la vista public.vw_inventario_equipos retornando el inventario consolidado con hardware."""
+    from sqlalchemy import text
+    resultado = db.execute(text("SELECT * FROM public.vw_inventario_equipos ORDER BY equipo_nombre ASC"))
+    return [dict(row) for row in resultado.mappings()]

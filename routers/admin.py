@@ -1,3 +1,5 @@
+import csv
+import io
 import os
 import subprocess
 import tempfile
@@ -6,7 +8,7 @@ from typing import Optional
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
 from sqlalchemy import func
@@ -153,6 +155,103 @@ def historial_general(
         **_contexto_usuario(user),
     }
     return render_template("historial_admin.html", context)
+
+
+@router.get("/historial-general/csv", dependencies=[Depends(require_panel)])
+def descargar_historial_csv(db: Session = Depends(get_db)):
+    """Exporta el historial de incidencias resueltas a un archivo CSV compatible con Excel."""
+    todas_incidencias = incidencias_service.listar_incidencias(db)
+    estados_resueltos = ["RESUELTO", "CERRADO", "Resuelta", "Resuelto", "Cerrado"]
+    incidencias = [
+        inc for inc in todas_incidencias
+        if (inc.estado and inc.estado.strip() in estados_resueltos)
+    ]
+
+    zona_caracas = ZoneInfo("America/Caracas")
+
+    output = io.StringIO()
+    # Escribir BOM UTF-8 para apertura directa en Excel con caracteres especiales
+    output.write("\ufeff")
+    writer = csv.writer(output, delimiter=";", quoting=csv.QUOTE_MINIMAL)
+
+    writer.writerow([
+        "Ticket",
+        "Descripción",
+        "Estado",
+        "Equipo",
+        "Código QR",
+        "Ubicación",
+        "Piso",
+        "Técnico Asignado",
+        "Email Técnico",
+        "Reportado Por",
+        "Cédula Reportante",
+        "Fecha Reporte",
+        "Fecha Resolución",
+        "Duración Total",
+        "Próximo Mantenimiento Preventivo",
+        "Detalle Verificación Cierre",
+    ])
+
+    for inc in incidencias:
+        fecha_rep_str = (
+            inc.fecha_reporte.replace(tzinfo=zona_caracas).strftime("%d/%m/%Y %H:%M:%S")
+            if inc.fecha_reporte
+            else "—"
+        )
+
+        fecha_resolucion = inc.fecha_cierre or (inc.historial[0].fecha if inc.historial else inc.fecha_reporte)
+        if fecha_resolucion:
+            fecha_res_segura = (
+                fecha_resolucion.replace(tzinfo=zona_caracas)
+                if fecha_resolucion.tzinfo is None
+                else fecha_resolucion
+            )
+            fecha_res_str = fecha_res_segura.strftime("%d/%m/%Y %H:%M:%S")
+            fecha_mant_str = (fecha_res_segura + timedelta(days=90)).strftime("%d/%m/%Y")
+        else:
+            fecha_res_str = "—"
+            fecha_mant_str = "—"
+
+        ubicacion_str = "—"
+        if inc.equipo:
+            if inc.equipo.rel_ubicacion:
+                ubicacion_str = inc.equipo.rel_ubicacion.nombre
+            elif inc.equipo.ubicacion:
+                ubicacion_str = inc.equipo.ubicacion
+
+        duracion_str = "—"
+        if inc.duracion_total_min is not None:
+            duracion_str = f"{inc.duracion_total_min // 60}h {inc.duracion_total_min % 60}m"
+
+        writer.writerow([
+            f"#{inc.id:04d}",
+            inc.descripcion or "",
+            inc.estado or "",
+            inc.equipo.nombre if inc.equipo else "—",
+            inc.equipo.codigo_qr if inc.equipo else "—",
+            ubicacion_str,
+            (inc.equipo.piso if inc.equipo and inc.equipo.piso else "—"),
+            inc.tecnico.nombre if inc.tecnico else "Sin asignar",
+            inc.tecnico.email if (inc.tecnico and hasattr(inc.tecnico, "email") and inc.tecnico.email) else "—",
+            inc.reportado_por_nombre or "—",
+            inc.reportado_por_cedula or "—",
+            fecha_rep_str,
+            fecha_res_str,
+            duracion_str,
+            fecha_mant_str,
+            inc.detalle_verificacion_cierre or "—",
+        ])
+
+    csv_bytes = output.getvalue().encode("utf-8")
+    ahora_str = caracas_now().strftime("%Y%m%d_%H%M%S")
+    return Response(
+        content=csv_bytes,
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="historial_mantenimientos_{ahora_str}.csv"'
+        },
+    )
 
 
 # ─── Gestión de Usuarios ───────────────────────────────────────────
@@ -420,6 +519,55 @@ def vista_auditoria(
         **_contexto_usuario(user),
     }
     return render_template("auditoria.html", context)
+
+
+@router.get("/auditoria/csv", dependencies=[Depends(require_admin)])
+def descargar_auditoria_csv(db: Session = Depends(get_db)):
+    """Exporta los logs de auditoría a un archivo CSV compatible con Excel."""
+    from models import LogAuditoria
+
+    logs = db.query(LogAuditoria).order_by(LogAuditoria.id.desc()).all()
+    zona_caracas = ZoneInfo("America/Caracas")
+
+    output = io.StringIO()
+    # Escribir BOM UTF-8 para apertura directa en Excel con caracteres especiales
+    output.write("\ufeff")
+    writer = csv.writer(output, delimiter=";", quoting=csv.QUOTE_MINIMAL)
+
+    writer.writerow([
+        "ID",
+        "Fecha y Hora",
+        "Usuario",
+        "Rol",
+        "Acción Realizada",
+    ])
+
+    for log in logs:
+        fecha_str = (
+            log.fecha.replace(tzinfo=zona_caracas).strftime("%d/%m/%Y %H:%M:%S")
+            if log.fecha
+            else "—"
+        )
+        usuario_nombre = log.usuario.nombre if log.usuario else "Sistema"
+        usuario_rol = log.usuario.rol if log.usuario else "Sistema"
+
+        writer.writerow([
+            log.id,
+            fecha_str,
+            usuario_nombre,
+            usuario_rol,
+            log.accion or "",
+        ])
+
+    csv_bytes = output.getvalue().encode("utf-8")
+    ahora_str = caracas_now().strftime("%Y%m%d_%H%M%S")
+    return Response(
+        content=csv_bytes,
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="auditoria_movimientos_{ahora_str}.csv"'
+        },
+    )
 
 
 # ─── Copia de Seguridad PostgreSQL (pg_dump) ───────────────────────

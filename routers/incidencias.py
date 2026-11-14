@@ -15,8 +15,7 @@ def listar_incidencias(db: Session = Depends(get_db)):
 
 @router.get("/{incidencia_id}", response_model=schemas.IncidenciaDetalleResponse)
 def obtener_incidencia(incidencia_id: int, db: Session = Depends(get_db)):
-    incidencia = incidencias_service.obtener_incidencia(db, incidencia_id)
-    return incidencias_service.incidencia_a_detalle(incidencia)
+    return incidencias_service.obtener_incidencia_detalle(db, incidencia_id)
 
 
 @router.post("/", response_model=schemas.IncidenciaResponse, status_code=status.HTTP_201_CREATED)
