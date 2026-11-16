@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Soporte Técnico{% endblock %} — {{ hospital_name }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="/static/css/style.css" rel="stylesheet">
     {% block extra_head %}{% endblock %}
@@ -56,15 +59,77 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Modal global de confirmación (glassmorphism) -->
+<div class="glass-modal" id="confirmModal" aria-hidden="true">
+    <div class="glass-modal__panel" role="dialog" aria-modal="true">
+        <div class="glass-modal__header">
+            <h4 id="confirmTitle">Confirmar acción</h4>
+            <button type="button" class="glass-modal__close" data-modal-close>&times;</button>
+        </div>
+        <div class="glass-modal__body"><p id="confirmMessage" class="mb-0"></p></div>
+        <div class="glass-modal__footer">
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-modal-close>Cancelar</button>
+            <button type="button" class="btn btn-teal btn-sm" id="confirmOk">Confirmar</button>
+        </div>
+    </div>
+</div>
+
 <script>
+/* Utilidades de modales vanilla JS */
+function openModal(id) {
+    const m = document.getElementById(id);
+    if (!m) return;
+    m.style.display = 'flex';
+    requestAnimationFrame(() => m.classList.add('open'));
+    m.setAttribute('aria-hidden', 'false');
+}
+function closeModal(m) {
+    m.classList.remove('open');
+    m.setAttribute('aria-hidden', 'true');
+    setTimeout(() => { m.style.display = ''; }, 200);
+}
+document.addEventListener('click', function (e) {
+    const opener = e.target.closest('[data-modal-open]');
+    if (opener) { e.preventDefault(); openModal(opener.dataset.modalOpen); return; }
+    if (e.target.closest('[data-modal-close]')) {
+        const m = e.target.closest('.glass-modal'); if (m) closeModal(m); return;
+    }
+    if (e.target.classList.contains('glass-modal')) closeModal(e.target);
+});
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') document.querySelectorAll('.glass-modal.open').forEach(closeModal);
+});
+
+/* Confirmación genérica: <form data-confirm="mensaje"> o <a data-confirm="mensaje"> */
+(function () {
+    let pending = null;
+    function ask(message, action) {
+        document.getElementById('confirmMessage').textContent = message;
+        pending = action;
+        openModal('confirmModal');
+    }
+    document.addEventListener('submit', function (e) {
+        const f = e.target;
+        if (f.dataset && f.dataset.confirm && !f.dataset.confirmed) {
+            e.preventDefault();
+            ask(f.dataset.confirm, () => { f.dataset.confirmed = '1'; f.submit(); });
+        }
+    });
+    document.addEventListener('click', function (e) {
+        const a = e.target.closest('a[data-confirm]');
+        if (a) { e.preventDefault(); ask(a.dataset.confirm, () => { window.location.href = a.href; }); }
+    });
+    document.getElementById('confirmOk').addEventListener('click', function () {
+        const fn = pending; pending = null;
+        closeModal(document.getElementById('confirmModal'));
+        if (fn) fn();
+    });
+})();
+
+/* Cerrar sesión con modal de confirmación */
 document.addEventListener("DOMContentLoaded", function() {
-    const logoutLinks = document.querySelectorAll('a[href="/logout"]');
-    logoutLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
-            if (!confirm('¿Estás seguro que deseas cerrar sesión?')) {
-                e.preventDefault();
-            }
-        });
+    document.querySelectorAll('a[href="/logout"]').forEach(link => {
+        link.setAttribute('data-confirm', '¿Estás seguro que deseas cerrar sesión?');
     });
 });
 </script>

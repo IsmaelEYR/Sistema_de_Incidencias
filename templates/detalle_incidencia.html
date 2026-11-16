@@ -27,6 +27,10 @@
                             <td>{{ incidencia.fecha_reporte.strftime('%d/%m/%Y %H:%M') if incidencia.fecha_reporte else '—' }} ({{ tiempo_abierta }})</td>
                         </tr>
                         <tr>
+                            <th>Reportante:</th>
+                            <td>{{ incidencia.reportado_por_nombre or '—' }} (C.I. {{ incidencia.reportado_por_cedula or '—' }})</td>
+                        </tr>
+                        <tr>
                             <th>Estado:</th>
                             <td>
                                 {% if incidencia.estado == 'Pendiente' %}
@@ -62,7 +66,7 @@
                     <h3>⚙️ Cambiar estado</h3>
                 </div>
                 <div class="card-body">
-                    <form method="post" action="/admin/incidencias/{{ incidencia.id }}/actualizar">
+                    <form method="post" action="/admin/incidencias/{{ incidencia.id }}/actualizar" data-confirm="¿Confirmar el cambio de estado de este ticket?">
                         <input type="hidden" name="accion" value="cambiar_estado">
                         <select name="nuevo_estado" class="form-select mb-2">
                             <option value="Pendiente" {% if incidencia.estado == 'Pendiente' %}selected{% endif %}>Pendiente</option>
@@ -81,7 +85,7 @@
                     <h3>👤 Asignar técnico</h3>
                 </div>
                 <div class="card-body">
-                    <form method="post" action="/admin/incidencias/{{ incidencia.id }}/actualizar">
+                    <form method="post" action="/admin/incidencias/{{ incidencia.id }}/actualizar" data-confirm="¿Confirmar la asignación del técnico?">
                         <input type="hidden" name="accion" value="asignar_tecnico">
                         <select name="tecnico_id" class="form-select mb-2">
                             <option value="">-- Sin asignar --</option>

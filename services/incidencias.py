@@ -33,7 +33,7 @@ def _obtener_tipo_accion_id(db: Session, nombre_accion: str) -> int | None:
     """Obtiene el ID de tipo_general para la categoría ACCION si existe."""
     registro = db.query(models.TipoGeneral).filter(
         models.TipoGeneral.categoria == "ACCION",
-        models.TipoGeneral.nombre.ilike(nombre_accion.strip())
+        models.TipoGeneral.valor.ilike(nombre_accion.strip())
     ).first()
     return registro.id if registro else None
 
@@ -53,12 +53,12 @@ def incidencia_a_detalle(incidencia: models.Incidencia) -> schemas.IncidenciaDet
     estado_equipo_str = "—"
     if incidencia.equipo:
         if incidencia.equipo.rel_ubicacion:
-            ubicacion_str = incidencia.equipo.rel_ubicacion.nombre
+            ubicacion_str = incidencia.equipo.rel_ubicacion.valor
         elif incidencia.equipo.ubicacion:
             ubicacion_str = incidencia.equipo.ubicacion
 
         if incidencia.equipo.rel_estado:
-            estado_equipo_str = incidencia.equipo.rel_estado.nombre
+            estado_equipo_str = incidencia.equipo.rel_estado.valor
 
     # Formato amigable de duración
     duracion_formateada = None
@@ -178,7 +178,7 @@ def crear_incidencia(db: Session, datos: schemas.IncidenciaCreate, responsable_i
     # Actualizar estado de la máquina a EN_REVISION si existe en catálogo
     estado_en_revision = db.query(models.TipoGeneral).filter(
         models.TipoGeneral.categoria == "ESTADO_EQUIPO",
-        models.TipoGeneral.nombre.ilike("EN_REVISION")
+        models.TipoGeneral.valor.ilike("EN_REVISION")
     ).first()
     if estado_en_revision and incidencia.equipo:
         incidencia.equipo.tipo_estado_id = estado_en_revision.id
@@ -229,7 +229,7 @@ def crear_incidencia_por_qr(db: Session, codigo_qr: str, datos: schemas.Incidenc
     # Poner la máquina en EN_REVISION
     estado_en_revision = db.query(models.TipoGeneral).filter(
         models.TipoGeneral.categoria == "ESTADO_EQUIPO",
-        models.TipoGeneral.nombre.ilike("EN_REVISION")
+        models.TipoGeneral.valor.ilike("EN_REVISION")
     ).first()
     if estado_en_revision:
         equipo.tipo_estado_id = estado_en_revision.id
@@ -304,7 +304,7 @@ def actualizar_incidencia(db: Session, incidencia_id: int, datos: schemas.Incide
                 # Liberar estado operativo del equipo a ACTIVO
                 estado_activo = db.query(models.TipoGeneral).filter(
                     models.TipoGeneral.categoria == "ESTADO_EQUIPO",
-                    models.TipoGeneral.nombre.ilike("ACTIVO")
+                    models.TipoGeneral.valor.ilike("ACTIVO")
                 ).first()
                 if estado_activo and incidencia.equipo:
                     incidencia.equipo.tipo_estado_id = estado_activo.id

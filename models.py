@@ -13,6 +13,7 @@ from sqlalchemy import (
     text,
 )
 from sqlalchemy.orm import relationship
+from sqlalchemy.types import TypeDecorator
 
 from database import Base, engine
 
@@ -28,6 +29,18 @@ def caracas_now():
     return datetime.datetime.now(tz)
 
 
+class IntBool(TypeDecorator):
+    """Booleano de Python almacenado como INTEGER (0/1), como en el esquema real de PostgreSQL."""
+    impl = Integer
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        return None if value is None else int(bool(value))
+
+    def process_result_value(self, value, dialect):
+        return None if value is None else bool(value)
+
+
 # =========================================================================
 # 1. TABLA MAESTRA DE PARÁMETROS Y CATÁLOGOS (tipo_general)
 # =========================================================================
@@ -36,9 +49,8 @@ class TipoGeneral(Base):
 
     id = Column(BigInteger, primary_key=True, index=True)
     categoria = Column(String(50), nullable=False, index=True)  # UBICACION, ESTADO_EQUIPO, ACCION
-    nombre = Column(String(150), nullable=False)
-    descripcion = Column(Text, nullable=True)
-    activo = Column(Boolean, default=True, nullable=False)
+    valor = Column(String(100), nullable=False)
+    activo = Column(IntBool, default=True, nullable=False)
     creado_en = Column(DateTime(timezone=True), default=caracas_now)
     actualizado_en = Column(DateTime(timezone=True), default=caracas_now, onupdate=caracas_now)
 
@@ -72,7 +84,7 @@ class Usuario(Base):
     email = Column(String(150), unique=True, index=True, nullable=True)
     password_hash = Column(String(255), nullable=True)
     rol = Column(String(50), nullable=False)  # Administrador, Supervisor, Asistente/Tecnico
-    activo = Column(Boolean, default=True, nullable=False)
+    activo = Column(IntBool, default=True, nullable=False)
 
     incidencias = relationship("Incidencia", back_populates="tecnico")
     historial = relationship("HistorialIncidencia", back_populates="usuario")
@@ -88,7 +100,7 @@ class Equipo(Base):
     id = Column(BigInteger, primary_key=True, index=True)
     nombre = Column(String(150), index=True, nullable=False)
     codigo_qr = Column(String(100), unique=True, index=True, nullable=False)
-    activo = Column(Boolean, default=True, nullable=False)
+    activo = Column(IntBool, default=True, nullable=False)
 
     # Llaves foráneas hacia tipo_general (Esquema 2.4)
     tipo_ubicacion_id = Column(BigInteger, ForeignKey("tipo_general.id"), nullable=True, index=True)
@@ -260,8 +272,8 @@ VISTAS_SQL = [
         e.id AS equipo_id,
         e.codigo_qr,
         e.nombre AS equipo_nombre,
-        tu.nombre AS ubicacion_hospital,
-        te.nombre AS estado_operativo_maquina,
+        tu.valor AS ubicacion_hospital,
+        te.valor AS estado_operativo_maquina,
         e.activo,
         
         -- Especificaciones de Hardware desde detalle_pc
@@ -340,8 +352,8 @@ VISTAS_SQL = [
         e.id AS equipo_id,
         e.codigo_qr,
         e.nombre AS equipo_nombre,
-        tu.nombre AS ubicacion_actual,
-        te.nombre AS estado_operativo_maquina,
+        tu.valor AS ubicacion_actual,
+        te.valor AS estado_operativo_maquina,
 
         -- Datos del Técnico Asignado
         u.id AS tecnico_id,
@@ -390,8 +402,10 @@ def crear_vistas(conn=None) -> None:
 # =========================================================================
 # MIGRACIÓN AUTOMÁTICA SEGURA DE COLUMNAS Y VISTAS
 # =========================================================================
-def _column_exists(table: str, column: str) -> bool:
-    inspector = inspect(engine)
+def _column_exists(table: str, column: str, conn=None) -> bool:
+    # Usar la MISMA conexión de la migración: si se abre otra, el inspector queda
+    # bloqueado esperando el lock del ALTER TABLE pendiente (auto-deadlock / cuelgue).
+    inspector = inspect(conn if conn is not None else engine)
     if table not in inspector.get_table_names():
         return False
     return column in {c["name"] for c in inspector.get_columns(table)}
@@ -401,32 +415,46 @@ def migrate_db() -> None:
     Base.metadata.create_all(bind=engine)
 
     with engine.connect() as conn:
+        # tipo_general: la columna de texto oficial es `valor`. Si una tabla antigua
+        # aún tiene `nombre`, se renombra (o se sincroniza) sin perder datos.
+        tiene_nombre = _column_exists("tipo_general", "nombre", conn)
+        tiene_valor = _column_exists("tipo_general", "valor", conn)
+        if tiene_nombre and not tiene_valor:
+            conn.execute(text("ALTER TABLE tipo_general RENAME COLUMN nombre TO valor"))
+        elif tiene_nombre and tiene_valor:
+            conn.execute(text(
+                "UPDATE tipo_general SET valor = nombre WHERE (valor IS NULL OR valor = '') AND nombre IS NOT NULL"
+            ))
+            conn.execute(text("ALTER TABLE tipo_general ALTER COLUMN nombre DROP NOT NULL"))
+        elif not tiene_valor and _column_exists("tipo_general", "id", conn):
+            conn.execute(text("ALTER TABLE tipo_general ADD COLUMN valor VARCHAR(100) NOT NULL DEFAULT ''"))
+
         # Migraciones en equipos
-        if not _column_exists("equipos", "tipo_ubicacion_id"):
+        if not _column_exists("equipos", "tipo_ubicacion_id", conn):
             conn.execute(text("ALTER TABLE equipos ADD COLUMN tipo_ubicacion_id BIGINT REFERENCES tipo_general(id)"))
-        if not _column_exists("equipos", "tipo_estado_id"):
+        if not _column_exists("equipos", "tipo_estado_id", conn):
             conn.execute(text("ALTER TABLE equipos ADD COLUMN tipo_estado_id BIGINT REFERENCES tipo_general(id)"))
 
         # Migraciones en incidencias
-        if not _column_exists("incidencias", "reportado_por_nombre"):
+        if not _column_exists("incidencias", "reportado_por_nombre", conn):
             conn.execute(text("ALTER TABLE incidencias ADD COLUMN reportado_por_nombre VARCHAR(150)"))
-        if not _column_exists("incidencias", "reportado_por_cedula"):
+        if not _column_exists("incidencias", "reportado_por_cedula", conn):
             conn.execute(text("ALTER TABLE incidencias ADD COLUMN reportado_por_cedula VARCHAR(50)"))
-        if not _column_exists("incidencias", "fecha_asignacion"):
+        if not _column_exists("incidencias", "fecha_asignacion", conn):
             conn.execute(text("ALTER TABLE incidencias ADD COLUMN fecha_asignacion TIMESTAMPTZ"))
-        if not _column_exists("incidencias", "fecha_proceso"):
+        if not _column_exists("incidencias", "fecha_proceso", conn):
             conn.execute(text("ALTER TABLE incidencias ADD COLUMN fecha_proceso TIMESTAMPTZ"))
-        if not _column_exists("incidencias", "fecha_solucion"):
+        if not _column_exists("incidencias", "fecha_solucion", conn):
             conn.execute(text("ALTER TABLE incidencias ADD COLUMN fecha_solucion TIMESTAMPTZ"))
-        if not _column_exists("incidencias", "duracion_hasta_asignacion_min"):
+        if not _column_exists("incidencias", "duracion_hasta_asignacion_min", conn):
             conn.execute(text("ALTER TABLE incidencias ADD COLUMN duracion_hasta_asignacion_min INTEGER"))
-        if not _column_exists("incidencias", "duracion_proceso_min"):
+        if not _column_exists("incidencias", "duracion_proceso_min", conn):
             conn.execute(text("ALTER TABLE incidencias ADD COLUMN duracion_proceso_min INTEGER"))
-        if not _column_exists("incidencias", "duracion_solucion_min"):
+        if not _column_exists("incidencias", "duracion_solucion_min", conn):
             conn.execute(text("ALTER TABLE incidencias ADD COLUMN duracion_solucion_min INTEGER"))
 
         # Migraciones en historial_incidencias
-        if not _column_exists("historial_incidencias", "tipo_accion_id"):
+        if not _column_exists("historial_incidencias", "tipo_accion_id", conn):
             conn.execute(text("ALTER TABLE historial_incidencias ADD COLUMN tipo_accion_id BIGINT REFERENCES tipo_general(id)"))
 
         # Creación / Actualización automática de vistas

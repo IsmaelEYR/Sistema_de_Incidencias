@@ -58,7 +58,7 @@ def _tecnicos_activos(db: Session) -> list[Usuario]:
         db.query(Usuario)
         .filter(
             func.lower(Usuario.rol).in_(roles_permitidos),
-            Usuario.activo.is_(True)
+            Usuario.activo == True
         )
         .order_by(Usuario.nombre)
         .all()
@@ -216,7 +216,7 @@ def descargar_historial_csv(db: Session = Depends(get_db)):
         ubicacion_str = "—"
         if inc.equipo:
             if inc.equipo.rel_ubicacion:
-                ubicacion_str = inc.equipo.rel_ubicacion.nombre
+                ubicacion_str = inc.equipo.rel_ubicacion.valor
             elif inc.equipo.ubicacion:
                 ubicacion_str = inc.equipo.ubicacion
 
@@ -266,9 +266,9 @@ def lista_usuarios(
     viendo_inactivos = inactivos == "1"
 
     if viendo_inactivos:
-        usuarios = db.query(Usuario).filter(Usuario.activo.is_(False)).order_by(Usuario.nombre).all()
+        usuarios = db.query(Usuario).filter(Usuario.activo == False).order_by(Usuario.nombre).all()
     else:
-        usuarios = db.query(Usuario).filter(Usuario.activo.is_(True)).order_by(Usuario.nombre).all()
+        usuarios = db.query(Usuario).filter(Usuario.activo == True).order_by(Usuario.nombre).all()
 
     context = {
         "request": request,

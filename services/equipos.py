@@ -28,7 +28,7 @@ def _generar_codigo_qr(equipo_id: int, ubicacion: str, piso: str | None, tipo: s
 
 
 def listar_equipos(db: Session) -> list[models.Equipo]:
-    return db.query(models.Equipo).filter(models.Equipo.activo.is_(True)).order_by(models.Equipo.nombre).all()
+    return db.query(models.Equipo).filter(models.Equipo.activo == True).order_by(models.Equipo.nombre).all()
 
 
 def obtener_equipo(db: Session, equipo_id: int) -> models.Equipo:

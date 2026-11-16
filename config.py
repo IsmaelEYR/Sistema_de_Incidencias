@@ -2,6 +2,23 @@ import os
 from dataclasses import dataclass
 
 
+def _load_dotenv() -> None:
+    """Carga variables desde .env (si existe) sin sobrescribir el entorno real."""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+    if not os.path.isfile(path):
+        return
+    with open(path, encoding="utf-8") as fh:
+        for line in fh:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
+_load_dotenv()
+
+
 @dataclass(frozen=True)
 class Settings:
     app_title: str = "Sistema de Incidencias - Soporte Técnico"

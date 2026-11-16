@@ -117,20 +117,47 @@
                             {{ inc.fecha_reporte.strftime('%d/%m/%Y %H:%M') if inc.fecha_reporte else '—' }}
                         </td>
                         <td data-label="Acciones" class="acciones-cell">
-                            <a href="/admin/incidencias/{{ inc.id }}/detalle" class="btn btn-sm btn-outline-teal" title="Ver detalle">
+                            <button type="button" class="btn btn-sm btn-outline-teal" data-modal-open="detalleModal{{ inc.id }}" title="Ver detalle rápido">
                                 👁️
-                            </a>
+                            </button>
                             <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#asignarModal{{ inc.id }}" title="Asignar técnico">
                                 👤
                             </button>
                         </td>
                     </tr>
 
+                    <!-- Modal de detalle completo (glassmorphism) -->
+                    <div class="glass-modal" id="detalleModal{{ inc.id }}" aria-hidden="true">
+                        <div class="glass-modal__panel wide" role="dialog" aria-modal="true">
+                            <div class="glass-modal__header">
+                                <h4>Ticket #{{ "%04d"|format(inc.id) }}</h4>
+                                <button type="button" class="glass-modal__close" data-modal-close>&times;</button>
+                            </div>
+                            <div class="glass-modal__body">
+                                <dl class="detail-grid mb-0">
+                                    <div class="detail-item full"><dt>Descripción</dt><dd>{{ inc.descripcion }}</dd></div>
+                                    <div class="detail-item"><dt>Equipo</dt><dd>{{ inc.equipo.nombre if inc.equipo else '—' }}</dd></div>
+                                    <div class="detail-item"><dt>Ubicación</dt><dd>{{ inc.equipo.ubicacion if inc.equipo else '—' }}</dd></div>
+                                    <div class="detail-item"><dt>Reportado por</dt><dd>{{ inc.reportado_por_nombre or '—' }}</dd></div>
+                                    <div class="detail-item"><dt>Cédula</dt><dd>{{ inc.reportado_por_cedula or '—' }}</dd></div>
+                                    <div class="detail-item"><dt>Estado</dt><dd>{{ inc.estado }}</dd></div>
+                                    <div class="detail-item"><dt>Técnico</dt><dd>{{ inc.tecnico.nombre if inc.tecnico else 'Sin asignar' }}</dd></div>
+                                    <div class="detail-item"><dt>Fecha de reporte</dt><dd>{{ inc.fecha_reporte.strftime('%d/%m/%Y %H:%M') if inc.fecha_reporte else '—' }}</dd></div>
+                                    <div class="detail-item"><dt>Tiempo transcurrido</dt><dd>{{ inc.tiempo_transcurrido }}</dd></div>
+                                </dl>
+                            </div>
+                            <div class="glass-modal__footer">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" data-modal-close>Cerrar</button>
+                                <a href="/admin/incidencias/{{ inc.id }}/detalle" class="btn btn-teal btn-sm">Gestionar ticket</a>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Modal de asignación rápida -->
                     <div class="modal fade" id="asignarModal{{ inc.id }}" tabindex="-1" aria-hidden="true">
                         <div class="modal-dialog modal-sm">
                             <div class="modal-content">
-                                <form method="post" action="/admin/incidencias/{{ inc.id }}/actualizar">
+                                <form method="post" action="/admin/incidencias/{{ inc.id }}/actualizar" data-confirm="¿Confirmar la asignación del técnico para el ticket #{{ '%04d'|format(inc.id) }}?">
                                     <input type="hidden" name="accion" value="asignar_tecnico">
                                     <div class="modal-header">
                                         <h5 class="modal-title">Asignar técnico a #{{ "%04d"|format(inc.id) }}</h5>
@@ -213,7 +240,7 @@
                     labels: ['Pendientes', 'En Proceso', 'Resueltas'],
                     datasets: [{
                         data: [{{ stats.pendientes|default(0) }}, {{ stats.en_proceso|default(0) }}, {{ stats.resueltas|default(0) }}],
-                        backgroundColor: ['#e74c3c', '#f39c12', '#2ecc71'],
+                        backgroundColor: ['#ef4444', '#f59e0b', '#10b981'],
                         borderWidth: 0
                     }]
                 },

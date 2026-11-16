@@ -49,9 +49,9 @@
                             <a href="/reportar/{{ equipo.codigo_qr }}" target="_blank" class="btn btn-sm btn-outline-info" title="Abrir pantalla de reporte">
                                 📱
                             </a>
-                            <a href="/equipos/{{ equipo.id }}/qr" class="btn btn-sm btn-outline-teal" download title="Descargar QR">
+                            <button type="button" class="btn btn-sm btn-outline-teal" data-modal-open="qrModal{{ equipo.id }}" title="Ver / imprimir QR">
                                 📥
-                            </a>
+                            </button>
                             {% if equipo.tipo|lower == 'pc' %}
                             <a href="/equipos/{{ equipo.id }}/detalles-tecnicos" class="btn btn-sm btn-outline-secondary" title="Detalles PC">
                                 💻
@@ -61,11 +61,30 @@
                                 ✏️
                             </a>
                             <form method="post" action="/equipos/{{ equipo.id }}/eliminar" style="display:inline;"
-                                  onsubmit="return confirm('¿Eliminar el equipo {{ equipo.nombre }}? Esta acción no se puede deshacer.')">
+                                  data-confirm="¿Eliminar el equipo {{ equipo.nombre }}? Esta acción no se puede deshacer.">
                                 <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar">🗑️</button>
                             </form>
                         </td>
                     </tr>
+
+                    <!-- Modal QR (glassmorphism) -->
+                    <div class="glass-modal" id="qrModal{{ equipo.id }}" aria-hidden="true">
+                        <div class="glass-modal__panel" role="dialog" aria-modal="true">
+                            <div class="glass-modal__header">
+                                <h4>Código QR — {{ equipo.nombre }}</h4>
+                                <button type="button" class="glass-modal__close" data-modal-close>&times;</button>
+                            </div>
+                            <div class="glass-modal__body qr-box print-area" id="qrPrint{{ equipo.id }}">
+                                <img src="/equipos/{{ equipo.id }}/qr" alt="QR de {{ equipo.nombre }}" loading="lazy">
+                                <p class="mt-3 mb-0 fw-bold">{{ equipo.nombre }}</p>
+                                <p class="text-muted mb-0" style="font-size:.85rem;">📍 {{ equipo.ubicacion }} · <code>{{ equipo.codigo_qr }}</code></p>
+                            </div>
+                            <div class="glass-modal__footer">
+                                <a href="/equipos/{{ equipo.id }}/qr" download class="btn btn-outline-teal btn-sm">Descargar</a>
+                                <button type="button" class="btn btn-teal btn-sm" onclick="imprimirQR('qrPrint{{ equipo.id }}')">Imprimir</button>
+                            </div>
+                        </div>
+                    </div>
                     {% endfor %}
                 </tbody>
             </table>
@@ -79,4 +98,16 @@
         {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function imprimirQR(id) {
+    const el = document.getElementById(id);
+    const w = window.open('', '_blank', 'width=480,height=600');
+    w.document.write('<html><head><title>QR</title><style>body{font-family:sans-serif;text-align:center;padding:40px}img{width:300px;height:300px}</style></head><body>' + el.innerHTML + '</body></html>');
+    w.document.close();
+    w.onload = function () { w.focus(); w.print(); };
+}
+</script>
 {% endblock %}

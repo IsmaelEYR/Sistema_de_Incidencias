@@ -40,9 +40,8 @@ class EstadoIncidenciaEnum(str, Enum):
 # =========================================================================
 class TipoGeneralBase(BaseModel):
     categoria: str = Field(..., max_length=50)  # UBICACION, ESTADO_EQUIPO, ACCION
-    nombre: str = Field(..., max_length=150)
-    descripcion: Optional[str] = None
-    activo: bool = True
+    valor: str = Field(..., max_length=100)
+    activo: int = 1
 
 
 class TipoGeneralCreate(TipoGeneralBase):

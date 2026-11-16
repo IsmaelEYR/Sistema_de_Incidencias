@@ -48,7 +48,10 @@
                         <td data-label="ID">{{ usuario.id }}</td>
                         <td data-label="Nombre">{{ usuario.nombre }}</td>
                         <td data-label="Email">{{ usuario.email or '—' }}</td>
-                        <td data-label="Rol">{{ usuario.rol }}</td>
+                        <td data-label="Rol">
+                            {% set _r = (usuario.rol or '')|lower %}
+                            <span class="badge-pill {% if _r in ['admin','administrador'] %}badge-rol-administrador{% elif _r == 'supervisor' %}badge-rol-supervisor{% elif 'asistente' in _r %}badge-rol-asistente{% else %}badge-rol-tecnico{% endif %}">{{ usuario.rol }}</span>
+                        </td>
                         <td data-label="Activo">
                             {% if usuario.activo %}
                                 <span class="badge-estado badge-resuelta">Activo</span>
