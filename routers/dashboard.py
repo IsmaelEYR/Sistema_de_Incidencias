@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Depends, Form, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -70,23 +71,44 @@ def dashboard_publico(
 
 
 @router.get("/reportar/{codigo_qr}", response_class=HTMLResponse)
-def formulario_reporte(codigo_qr: str, request: Request, db: Session = Depends(get_db)):
+def formulario_reporte(
+    codigo_qr: str,
+    request: Request,
+    exito: Optional[str] = None,
+    ticket_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+):
     equipo = equipos_service.obtener_equipo_por_codigo(db, codigo_qr)
 
-    # Comprobar si el equipo ya tiene un ticket abierto (Anti-duplicado en UI)
-    estados_activos = ["PENDIENTE", "EN_PROCESO", "Pendiente", "En Proceso"]
-    incidencia_activa = (
-        db.query(models.Incidencia)
-        .filter(
-            models.Incidencia.equipo_id == equipo.id,
-            models.Incidencia.estado.in_(estados_activos),
+    # Confirmación tras PRG: solo éxito + ticket que pertenece a este equipo.
+    ticket_creado = None
+    if exito == "1" and ticket_id:
+        ticket_creado = (
+            db.query(models.Incidencia)
+            .filter(models.Incidencia.id == ticket_id, models.Incidencia.equipo_id == equipo.id)
+            .first()
         )
-        .first()
-    )
+    mostrar_exito = exito == "1" and ticket_creado is not None
+
+    # Anti-duplicado en UI (no aplica al mostrar la confirmación de éxito)
+    incidencia_activa = None
+    if not mostrar_exito:
+        estados_activos = ["PENDIENTE", "EN_PROCESO", "Pendiente", "En Proceso"]
+        incidencia_activa = (
+            db.query(models.Incidencia)
+            .filter(
+                models.Incidencia.equipo_id == equipo.id,
+                models.Incidencia.estado.in_(estados_activos),
+            )
+            .order_by(models.Incidencia.fecha_reporte.desc())
+            .first()
+        )
 
     context = {
         "request": request,
         "equipo": equipo,
+        "mostrar_exito": mostrar_exito,
+        "ticket_id": ticket_id,
         "incidencia_activa": incidencia_activa,
         "hospital_name": settings.hospital_name,
     }
@@ -109,9 +131,9 @@ def enviar_reporte(
         reportado_por_cedula=reportado_por_cedula,
     )
     try:
-        incidencias_service.crear_incidencia_por_qr(db, codigo_qr, datos)
+        nueva_incidencia = incidencias_service.crear_incidencia_por_qr(db, codigo_qr, datos)
         return RedirectResponse(
-            url=f"/reportar/{codigo_qr}?exito=1",
+            url=f"/reportar/{codigo_qr}?exito=1&ticket_id={nueva_incidencia.id}",
             status_code=status.HTTP_303_SEE_OTHER,
         )
     except DuplicateError:

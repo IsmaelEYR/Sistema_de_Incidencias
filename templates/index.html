@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestión de Incidencias Técnicas — {{ hospital_name }}</title>
+    <meta name="description" content="Sistema de Gestión de Incidencias Técnicas del {{ hospital_name }}. Proyecto Especial de Grado, Informática IUTA.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/style.css" rel="stylesheet">
+    <style>
+        body.landing {
+            display: flex; align-items: center; justify-content: center;
+            padding: clamp(1rem, 4vw, 3rem);
+            background:
+                radial-gradient(circle at 15% 10%, #ccfbf1 0, transparent 40%),
+                radial-gradient(circle at 90% 90%, #e0f2fe 0, transparent 40%),
+                var(--bg);
+        }
+        .landing-card {
+            width: 100%; max-width: 760px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.10);
+            padding: clamp(1.5rem, 5vw, 3.25rem);
+            text-align: center;
+            animation: modalIn 0.4s ease;
+        }
+        .landing-logo {
+            width: 68px; height: 68px; margin: 0 auto 1.25rem;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2rem; border-radius: 18px;
+            background: linear-gradient(135deg, #ccfbf1, #e0f2fe);
+            border: 1px solid var(--border);
+        }
+        .landing-hospital { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.75rem; }
+        .landing-badge {
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            padding: 0.35rem 0.9rem; border-radius: 999px;
+            background: #d1fae5; color: #065f46;
+            font-size: 0.78rem; font-weight: 700; margin-bottom: 1.25rem;
+        }
+        .landing-badge::before {
+            content: ""; width: 7px; height: 7px; border-radius: 50%;
+            background: #10b981; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
+        }
+        .landing-card h1 {
+            font-size: clamp(1.6rem, 4.5vw, 2.5rem);
+            font-weight: 800; letter-spacing: -0.03em; line-height: 1.15;
+            color: var(--text); margin-bottom: 1rem;
+        }
+        .landing-credits {
+            color: var(--text-muted); font-size: clamp(0.92rem, 2vw, 1.05rem);
+            line-height: 1.6; max-width: 560px; margin: 0 auto 2rem;
+        }
+        .landing-credits strong { color: var(--text); }
+        .landing-actions { display: flex; gap: 0.85rem; justify-content: center; flex-wrap: wrap; }
+        .landing-actions .btn { padding: 0.85rem 1.6rem; font-size: 0.95rem; flex: 1 1 220px; max-width: 320px; }
+        .btn-landing-secondary { background: #fff; border: 1px solid #cbd5e1; color: var(--text); }
+        .btn-landing-secondary:hover { background: var(--accent); border-color: #94a3b8; color: var(--text); }
+        .landing-note {
+            display: flex; gap: 0.85rem; align-items: flex-start; text-align: left;
+            margin-top: 2rem; padding: 1rem 1.15rem;
+            background: #f8fafc; border: 1px solid var(--border); border-radius: 14px;
+            font-size: 0.88rem; color: var(--text-muted); line-height: 1.5;
+        }
+        .landing-note .note-icon { font-size: 1.5rem; line-height: 1; }
+        .landing-note strong { color: var(--text); }
+        @media (max-width: 576px) {
+            .landing-actions .btn { flex-basis: 100%; max-width: none; }
+        }
+        @media (min-width: 1600px) {
+            .landing-card { max-width: 900px; }
+        }
+    </style>
+</head>
+<body class="landing">
+    <main class="landing-card">
+        <div class="landing-logo" aria-hidden="true">🏥</div>
+        <p class="landing-hospital">{{ hospital_name }}</p>
+        <span class="landing-badge">Versión {{ version }} • Sistema Operativo</span>
+
+        <h1>Sistema de Gestión de Incidencias Técnicas</h1>
+        <p class="landing-credits">
+            Proyecto Especial de Grado — Carrera de Informática (IUTA).<br>
+            Desarrollado por <strong>Ismael Yzarra &amp; Ari</strong>.
+        </p>
+
+        <div class="landing-actions">
+            <a id="btn-panel" href="/dashboard" class="btn btn-teal">Ir al Panel Principal</a>
+            <a id="btn-login" href="/login" class="btn btn-landing-secondary">Iniciar Sesión (Administradores)</a>
+        </div>
+
+        <aside class="landing-note" role="note">
+            <span class="note-icon" aria-hidden="true">📱</span>
+            <span><strong>¿Necesitas reportar una falla?</strong> Escanea el código QR asignado al equipo o activo con la cámara de tu teléfono para abrir el formulario de reporte.</span>
+        </aside>
+    </main>
+</body>
+</html>

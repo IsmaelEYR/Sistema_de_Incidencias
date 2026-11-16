@@ -38,14 +38,30 @@
                 </div>
             </div>
 
-            <!-- Mensaje de éxito -->
-            {% if request.query_params.get('exito') == '1' %}
-            <div class="alert alert-success-custom">
-                ✅ Reporte enviado correctamente. El equipo técnico ha sido notificado.
+            {% if mostrar_exito %}
+            <!-- Confirmación de éxito (PRG) -->
+            <div class="success-card" role="status">
+                <div class="success-icon">✓</div>
+                <h3>¡Reporte enviado con éxito!</h3>
+                <p class="ticket-pill">Número de ticket: <strong>#{{ "%04d"|format(ticket_id) }}</strong></p>
+                <p class="mb-0">El equipo de soporte técnico atenderá tu solicitud pronto.</p>
             </div>
-            {% elif request.query_params.get('error') == 'duplicado' %}
-            <div class="alert alert-danger" style="background-color:#fee2e2; border-color:#fca5a5; color:#991b1b; padding:15px; border-radius:8px; margin-bottom:20px;">
-                ⚠️ <strong>Aviso:</strong> Este equipo ya tiene un reporte de falla activo siendo atendido por soporte técnico.
+            {% elif incidencia_activa %}
+            <!-- Banner informativo: ya existe un reporte activo -->
+            <div class="info-banner" role="status">
+                <div class="info-banner__head">
+                    <span class="info-banner__icon">ℹ️</span>
+                    <strong>Este equipo ya tiene un reporte activo (#{{ "%04d"|format(incidencia_activa.id) }}) siendo atendido por soporte técnico</strong>
+                </div>
+                <div class="info-banner__meta">
+                    <span>Estado actual:</span>
+                    {% set _e = (incidencia_activa.estado or '')|lower|replace('_', ' ') %}
+                    <span class="badge-estado {% if _e == 'en proceso' %}badge-proceso{% else %}badge-pendiente{% endif %}">{{ 'En Proceso' if _e == 'en proceso' else 'Pendiente' }}</span>
+                </div>
+                {% if incidencia_activa.fecha_reporte %}
+                <div class="info-banner__meta"><span>Reportado el:</span> {{ incidencia_activa.fecha_reporte.strftime('%d/%m/%Y %H:%M') }}</div>
+                {% endif %}
+                <p class="mb-0 mt-2" style="font-size:.85rem;color:var(--text-muted);">No es necesario enviar otro reporte: el equipo técnico ya está al tanto.</p>
             </div>
             {% else %}
             <!-- Formulario de reporte -->

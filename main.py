@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from sqlalchemy.exc import IntegrityError
 
 import models
@@ -18,6 +19,7 @@ app = FastAPI(
 )
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
 
 from routers import auth, admin, dashboard, equipos, incidencias, usuarios
 
@@ -64,9 +66,13 @@ async def http_exception_handler(request: Request, exc: HTTPException):
     )
 
 
-@app.get("/", response_model=schemas.MensajeResponse)
-def ruta_principal():
-    return schemas.MensajeResponse(
-        mensaje="Servidor del sistema de incidencias operativo.",
-        version=settings.app_version,
-    )# Trigger reload
+@app.get("/", response_class=HTMLResponse, include_in_schema=False)
+def ruta_principal(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "index.html",
+        {
+            "hospital_name": settings.hospital_name,
+            "version": settings.app_version,
+        },
+    )
